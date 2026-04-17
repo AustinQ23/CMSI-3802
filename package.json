@@ -1,0 +1,15 @@
+{
+  "name": "cmsi-3802",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Quinn Austin, Colin Bajo-Smith, Max Lehmann",
+  "license": "ISC",
+  "dependencies": {
+    "ohm-js": "^17.5.0"
+  }
+}
