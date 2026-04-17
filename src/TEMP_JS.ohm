@@ -1,0 +1,61 @@
+TEMP_JS {
+  Program     = Decl+
+  Decl        = FuncDecl | VarDecl | Statement
+  
+  FuncDecl    = "fn" id "(" ListOf<Param, ","> ")" ("->" type)? "{" Statement* "}"
+  Param       = id ":" type
+  
+  // Note the lowercase 't' - this is now a lexical rule!
+  type        = "int" | "float" | "bool" | "string" | "void"
+  
+  Statement   = VarDecl 
+              | Assign 
+              | Print 
+              | IfStmt 
+              | WhileStmt 
+              | ReturnStmt 
+              | BreakStmt
+              | ExpStmt
+              
+  VarDecl     = "let" id ":" type "=" Exp ";"
+              | "mut" id ":" type "=" Exp ";"
+  Assign      = id "=" Exp ";"
+  Print       = "print" "(" Exp ")" ";"
+  IfStmt      = "if" Exp "{" Statement* "}" ("else" "{" Statement* "}")?
+  WhileStmt   = "while" Exp "{" Statement* "}"
+  ReturnStmt  = "return" Exp? ";"
+  BreakStmt   = "break" ";"
+  ExpStmt     = Exp ";"
+
+  Exp         = Exp "||" Exp1         -- or
+              | Exp1
+  Exp1        = Exp1 "&&" Exp2        -- and
+              | Exp2
+  Exp2        = Exp3 relop Exp3       -- compare
+              | Exp3
+  Exp3        = Exp3 addop Exp4       -- add
+              | Exp4
+  Exp4        = Exp4 mulop Exp5       -- multiply
+              | Exp5
+  Exp5        = prefixop Exp6         -- prefix
+              | Exp6
+  Exp6        = Exp7 "**" Exp6        -- power
+              | Exp7
+  Exp7        = literal
+              | id "(" ListOf<Exp, ","> ")" -- call
+              | id                    -- id
+              | "(" Exp ")"           -- parens
+
+  relop       = "<=" | ">=" | "==" | "!=" | "<" | ">"
+  addop       = "+" | "-"
+  mulop       = "*" | "/" | "%"
+  prefixop    = "-" | "!"
+  
+  id          = ~keyword letter (alnum | "_")*
+  keyword     = "fn" | "let" | "mut" | "if" | "else" | "while" | "return" | "break" | "print" | "true" | "false" | type
+  literal     = num | string | "true" | "false"
+  num         = digit+ ("." digit+)?
+  string      = "\"" (~"\"" any)* "\""
+  
+  space      += "//" (~"\n" any)* "\n"?  -- comment
+}
