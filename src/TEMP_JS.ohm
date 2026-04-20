@@ -17,15 +17,15 @@ TEMP_JS {
               | BreakStmt
               | ExpStmt
               
-  VarDecl     = "let" id ":" type "=" Exp ";"
-              | "mut" id ":" type "=" Exp ";"
-  Assign      = id "=" Exp ";"
-  Print       = "print" "(" Exp ")" ";"
+  VarDecl     = "let" id ":" type "="
+              | "mut" id ":" type "="
+  Assign      = id "=" Exp
+  Print       = "print" "(" Exp ")"
   IfStmt      = "if" Exp "{" Statement* "}" ("else" "{" Statement* "}")?
   WhileStmt   = "while" Exp "{" Statement* "}"
-  ReturnStmt  = "return" Exp? ";"
-  BreakStmt   = "break" ";"
-  ExpStmt     = Exp ";"
+  ReturnStmt  = "return" Exp?
+  BreakStmt   = "break"
+  ExpStmt     = Exp
 
   Exp         = Exp "||" Exp1         -- or
               | Exp1
