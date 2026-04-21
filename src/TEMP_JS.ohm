@@ -17,8 +17,9 @@ TEMP_JS {
               | BreakStmt
               | ExpStmt
               
-  VarDecl     = "let" id ":" type "="
-              | "mut" id ":" type "="
+  // Allow optional type annotation and optional initializer so declarations like
+  // `mut x =` and `mut x = 5` are valid.
+  VarDecl     = ("let" | "mut") id "=" Exp
   Assign      = id "=" Exp
   Print       = "print" "(" Exp ")"
   IfStmt      = "if" Exp "{" Statement* "}" ("else" "{" Statement* "}")?
@@ -52,7 +53,10 @@ TEMP_JS {
   prefixop    = "-" | "!"
   
   id          = ~keyword letter (alnum | "_")*
-  keyword     = "fn" | "let" | "mut" | "if" | "else" | "while" | "return" | "break" | "print" | "true" | "false" | type
+  // A keyword must not be followed by an identifier character so that identifiers
+  // like `mut_example` are allowed. We use a negative lookahead for the
+  // identifier chars (alnum or underscore) to enforce a word boundary.
+  keyword     = ("fn" | "let" | "mut" | "if" | "else" | "while" | "return" | "break" | "print" | "true" | "false" | type) ~(alnum | "_")
   literal     = num | string | "true" | "false"
   num         = digit+ ("." digit+)?
   string      = "\"" (~"\"" any)* "\""
