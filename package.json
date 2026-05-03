@@ -8,7 +8,7 @@
   },
   "type": "module",
   "scripts": {
-    "test": "node --test test/compiler.test.js test/grammar.test.js test/analyzer.test.js test/optimizer.test.js test/generator.test.js"
+    "test": "node --test --experimental-test-coverage test/compiler.test.js test/grammar.test.js test/analyzer.test.js test/optimizer.test.js test/generator.test.js"
   },
   "author": "Quinn Austin, Colin Bajo-Smith, Max Lehmann",
   "repository": {
