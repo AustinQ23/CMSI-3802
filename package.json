@@ -1,7 +1,7 @@
 {
   "name": "temp_js",
   "version": "1.0.0",
-  "description": "",
+  "description": "A statically-typed, immutable-by-default language that compiles to JavaScript",
   "main": "src/temp_js.js",
   "bin": {
     "temp-js": "src/temp_js.js"
@@ -11,6 +11,10 @@
     "test": "node --test test/compiler.test.js test/grammar.test.js test/analyzer.test.js test/optimizer.test.js test/generator.test.js"
   },
   "author": "Quinn Austin, Colin Bajo-Smith, Max Lehmann",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AustinQ23/TEMP_JS"
+  },
   "license": "MIT",
   "dependencies": {
     "graph-stringify": "^1.1.0",
