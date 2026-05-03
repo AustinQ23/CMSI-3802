@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { compile } from '../src/compiler.js';
 
-// ── Parse errors ──────────────────────────────────────────────────────────
+// ── Parse errors ───────
 
 test('compiler: syntax error returns diagnostics and null result', () => {
   const { result, diagnostics } = compile('fn ()', 'js');

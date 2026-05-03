@@ -244,3 +244,59 @@ test('optimizer: modulo by zero is not constant folded', () => {
   const result = optimize(bin('%', lit(5), lit(0)));
   assert.equal(result.type, 'Binary');
 });
+
+// ── Guard branches ─────────────────────────────────────────────────────────
+
+test('optimizer: optimize(null) returns null', () => {
+  assert.equal(optimize(null), null);
+});
+
+test('optimizer: optimize on a non-object primitive returns it unchanged', () => {
+  assert.equal(optimize(42), 42);
+});
+
+// ── Missing strength reductions ────────────────────────────────────────────
+
+test('optimizer: 0 * x simplifies to literal 0', () => {
+  const result = optimize(bin('*', lit(0), id('x')));
+  assert.equal(result.type, 'Literal');
+  assert.equal(result.value, 0);
+});
+
+// ── VarDecl with null init ─────────────────────────────────────────────────
+
+test('optimizer: VarDecl with null init passes through with null init', () => {
+  const node = { type: 'VarDecl', kind: 'let', name: 'x', init: null };
+  const result = optimize(node);
+  assert.equal(result.init, null);
+});
+
+// ── if false with multi-statement else ────────────────────────────────────
+
+test('optimizer: if false with multi-statement else returns Block', () => {
+  const result = optimize({
+    type: 'If',
+    cond: lit(false),
+    thenBody: [{ type: 'Break' }],
+    elseBody: [{ type: 'Break' }, { type: 'Break' }]
+  });
+  assert.equal(result.type, 'Block');
+  assert.equal(result.body.length, 2);
+});
+
+test('optimizer: if false with else body that eliminates to empty returns null', () => {
+  const result = optimize({
+    type: 'If',
+    cond: lit(false),
+    thenBody: [{ type: 'Break' }],
+    elseBody: [assign('x', id('x'))]
+  });
+  assert.equal(result, null);
+});
+
+test('optimizer: Unary with unknown op and literal expr returns node unchanged', () => {
+  const node = { type: 'Unary', op: '~', expr: lit(5) };
+  const result = optimize(node);
+  assert.equal(result.type, 'Unary');
+  assert.equal(result.op, '~');
+});

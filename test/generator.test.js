@@ -23,7 +23,7 @@ test('generator: mut declaration becomes let', () => {
   assert.ok(contains('fn f() { mut x = 5 }', 'let x = 5'));
 });
 
-// ── Print ──────────────────────────────────────────────────────────────────
+// ── Print ─
 
 test('generator: print becomes console.log', () => {
   assert.ok(contains('fn f() { print(42) }', 'console.log(42)'));
@@ -193,4 +193,12 @@ test('generator: power operator emits **', () => {
 test('generator: parenthesized expression is preserved', () => {
   const out = gen('fn f() { let a = [1] let x = a[0] let y = (x + 1) }');
   assert.ok(out.includes('(x + 1)'));
+});
+
+test('generator: generateJS throws on null AST', () => {
+  assert.throws(() => generateJS(null), /Invalid AST for codegen/);
+});
+
+test('generator: generateJS throws on non-Program AST', () => {
+  assert.throws(() => generateJS({ type: 'FunctionDecl' }), /Invalid AST for codegen/);
 });

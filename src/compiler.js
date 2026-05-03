@@ -1,4 +1,4 @@
-import { buildAST } from './core.js';
+import { buildAST } from './parser.js';
 import { analyze } from './analyzer.js';
 import { optimize } from './optimizer.js';
 import { generateJS } from './generator.js';

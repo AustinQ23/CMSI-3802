@@ -1,198 +1,91 @@
-import * as ohm from 'ohm-js';
+// A lightweight semantic validator that enforces:
+// - assignments must target a previously declared variable (with let or mut) in the same function scope
+// - assignments to `let` declarations are errors (immutable)
+// This is intentionally simple and operates on source text using brace-matching and line scanning.
 
-// Embed the grammar directly as a string
-const grammarText = String.raw`
-TEMP_JS {
-  Program     = Decl+
-  Decl        = FuncDecl | VarDecl | Statement
+import { analyze as analyzeAst } from './analyzer.js';
 
-  FuncDecl    = "fn" id "(" ListOf<Param, ","> ")" "{" Statement* "}"
-  Param       = id
+export function validateDeclarations(src) {
+  const errors = [];
 
-  Statement   = VarDecl
-              | IndexAssign
-              | Assign
-              | Print
-              | IfStmt
-              | WhileStmt
-              | ForStmt
-              | ReturnStmt
-              | BreakStmt
-              | ExpStmt
-
-  VarDecl     = ("let" | "mut") id "=" Exp
-  IndexAssign = id "[" Exp "]" "=" Exp
-  Assign      = id "=" Exp
-  Print       = "print" "(" Exp ")"
-  IfStmt      = "if" Exp "{" Statement* "}" "else" "{" Statement* "}" -- long
-              | "if" Exp "{" Statement* "}" -- short
-  WhileStmt   = "while" Exp "{" Statement* "}"
-  ForStmt     = "for" id "in" Exp "{" Statement* "}"
-  ReturnStmt  = "return" Exp?
-  BreakStmt   = "break"
-  ExpStmt     = Exp
-
-  Exp         = Exp "||" Exp1         -- or
-              | Exp1
-  Exp1        = Exp1 "&&" Exp2        -- and
-              | Exp2
-  Exp2        = Exp3 relop Exp3       -- compare
-              | Exp3
-  Exp3        = Exp3 addop Exp4       -- add
-              | Exp4
-  Exp4        = Exp4 mulop Exp5       -- multiply
-              | Exp5
-  Exp5        = prefixop Exp6         -- prefix
-              | Exp6
-  Exp6        = Exp7 "**" Exp6        -- power
-              | Exp7
-  Exp7        = Exp7 "[" Exp "]"             -- index
-              | "[" ListOf<Exp, ","> "]"     -- array
-              | literal
-              | id "(" ListOf<Exp, ","> ")"  -- call
-              | id                           -- id
-              | "(" Exp ")"                  -- parens
-
-  relop       = "<=" | ">=" | "==" | "!=" | "<" | ">"
-  addop       = "+" | "-"
-  mulop       = "*" | "/" | "%"
-  prefixop    = "-" | "!"
-
-  id          = ~keyword letter (alnum | "_")*
-  keyword     = ("fn" | "let" | "mut" | "if" | "else" | "while" | "for" | "in" | "return" | "break" | "print" | "true" | "false") ~(alnum | "_")
-  literal     = num | string | true | false
-  num         = digit+ ("." digit+)?
-  string      = "\"" (~"\"" any)* "\""
-  true        = "true"
-  false       = "false"
-
-  space      += "//" (~"\n" any)* "\n"?  -- comment
-}`;
-
-const G = ohm.grammar(grammarText);
-const semantics = G.createSemantics();
-
-// Helper constructors
-const n = (type, props) => ({ type, ...props });
-
-semantics.addOperation('ast', {
-  Program(decls) {
-    return n('Program', { body: decls.children.map(d => d.ast()) });
-  },
-
-  Decl(d) { return d.ast(); },
-
-  FuncDecl(_fn, name, _open, params, _close, _openb, stmts, _closeb) {
-    const pname = name.ast().name;
-    const paramsArr = params.asIteration().children.map(c => c.ast());
-    const body = stmts.children.map(s => s.ast());
-    return n('FunctionDecl', { name: pname, params: paramsArr, body });
-  },
-
-  Param(id) {
-    return n('Param', { name: id.ast().name });
-  },
-
-  Statement(s) { return s.ast(); },
-
-  VarDecl(kind, id, _eq, init) {
-    const k = kind.sourceString;
-    const name = id.ast().name;
-    return n('VarDecl', { kind: k, name, init: init.ast() });
-  },
-
-  Assign(id, _eq, exp) {
-    return n('Assign', { target: id.ast().name, expr: exp.ast() });
-  },
-
-  Print(_print, _open, exp, _close) {
-    return n('Print', { expr: exp.ast() });
-  },
-
-  IfStmt_long(_if, cond, _open, thenStmts, _close, _else, _open2, elseStmts, _close2) {
-    const thenBody = thenStmts.children.map(s => s.ast());
-    const elseBody = elseStmts.children.map(s => s.ast());
-    return n('If', { cond: cond.ast(), thenBody, elseBody });
-  },
-
-  IfStmt_short(_if, cond, _open, stmts, _close) {
-    const thenBody = stmts.children.map(s => s.ast());
-    return n('If', { cond: cond.ast(), thenBody, elseBody: null });
-  },
-
-  WhileStmt(_while, cond, _open, stmts, _close) {
-    return n('While', { cond: cond.ast(), body: stmts.children.map(s => s.ast()) });
-  },
-
-  ForStmt(_for, id, _in, iterable, _open, stmts, _close) {
-    return n('For', { variable: id.ast().name, iterable: iterable.ast(), body: stmts.children.map(s => s.ast()) });
-  },
-
-  IndexAssign(id, _open, index, _close, _eq, value) {
-    return n('IndexAssign', { target: id.ast().name, index: index.ast(), value: value.ast() });
-  },
-
-  ReturnStmt(_ret, expOpt) {
-    const expr = expOpt.children.length ? expOpt.children[0].ast() : null;
-    return n('Return', { expr });
-  },
-
-  BreakStmt(_b) { return n('Break', {}); },
-
-  ExpStmt(exp) { return exp.ast(); },
-
-  // Expressions
-  Exp_or(left, _op, right) { return n('Binary', { op: '||', left: left.ast(), right: right.ast() }); },
-  Exp(left) { return left.ast(); },
-  Exp1_and(left, _op, right) { return n('Binary', { op: '&&', left: left.ast(), right: right.ast() }); },
-  Exp1(left) { return left.ast(); },
-  Exp2_compare(left, op, right) { return n('Binary', { op: op.sourceString, left: left.ast(), right: right.ast() }); },
-  Exp2(left) { return left.ast(); },
-  Exp3_add(left, op, right) { return n('Binary', { op: op.sourceString, left: left.ast(), right: right.ast() }); },
-  Exp3(left) { return left.ast(); },
-  Exp4_multiply(left, op, right) { return n('Binary', { op: op.sourceString, left: left.ast(), right: right.ast() }); },
-  Exp4(left) { return left.ast(); },
-  Exp5_prefix(op, expr) { return n('Unary', { op: op.sourceString, expr: expr.ast() }); },
-  Exp5(expr) { return expr.ast(); },
-  Exp6_power(left, _op, right) { return n('Binary', { op: '**', left: left.ast(), right: right.ast() }); },
-  Exp6(expr) { return expr.ast(); },
-  Exp7_index(arr, _open, index, _close) {
-    return n('IndexAccess', { array: arr.ast(), index: index.ast() });
-  },
-  Exp7_array(_open, elements, _close) {
-    return n('ArrayLiteral', { elements: elements.asIteration().children.map(c => c.ast()) });
-  },
-  Exp7_call(id, _open, args, _close) {
-    const argList = args.asIteration().children.map(c => c.ast());
-    return n('Call', { callee: id.ast().name, args: argList });
-  },
-  Exp7_id(id) { return id.ast(); },
-  Exp7_parens(_open, expr, _close) { return expr.ast(); },
-
-  relop(ch) { return this.sourceString; },
-  addop(ch) { return this.sourceString; },
-  mulop(ch) { return this.sourceString; },
-  prefixop(ch) { return this.sourceString; },
-
-  id(a, b) { return n('Identifier', { name: this.sourceString }); },
-
-  num(a, b, c) { return n('Literal', { value: Number(this.sourceString) }); },
-  string(_open, _chars, _close) { return n('Literal', { value: this.sourceString.slice(1, -1) }); },
-  true(_true) { return n('Literal', { value: true }); },
-  false(_false) { return n('Literal', { value: false }); },
-
-  // default
-  _terminal() { return this.sourceString; },
-  _iter(...children) { return children.map(c => c.ast ? c.ast() : c); }
-});
-
-export function buildAST(src) {
-  const match = G.match(src);
-  if (!match.succeeded()) {
-    return { ast: null, errors: [match.message] };
+  // Helper: find matching closing brace starting at index of an opening brace
+  function findMatchingBrace(s, startIndex) {
+    let depth = 0;
+    for (let i = startIndex; i < s.length; i++) {
+      const ch = s[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) return i;
+      }
+    }
+    return -1;
   }
-  const ast = semantics(match).ast();
-  return { ast, errors: [] };
+
+  // Scan for function definitions: "fn" followed by name and a body in braces.
+  const fnRegex = /\bfn\b/g;
+  let m;
+  while ((m = fnRegex.exec(src)) !== null) {
+    // find first '{' after this position
+    const bracePos = src.indexOf('{', m.index);
+    if (bracePos === -1) break;
+    const endPos = findMatchingBrace(src, bracePos);
+    if (endPos === -1) break;
+    const body = src.slice(bracePos + 1, endPos);
+
+    // compute line offset for error reporting
+    const prefix = src.slice(0, bracePos + 1);
+    const lineOffset = prefix.split('\n').length - 1;
+
+    const declared = Object.create(null); // name -> { kind: 'let'|'mut', line }
+
+    const lines = body.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      const line = raw.trim();
+      const lineno = lineOffset + i + 1;
+
+      if (line.length === 0) continue;
+
+      // Declaration: let|mut name [: type] =
+      // Accept declarations with or without a type annotation, e.g. `mut x: int =` or `mut x =`.
+      const declMatch = line.match(/^(let|mut)\s+([A-Za-z][A-Za-z0-9_]*)(\s*:\s*[A-Za-z][A-Za-z0-9_]*)?\s*=/);
+      if (declMatch) {
+        const kind = declMatch[1];
+        const name = declMatch[2];
+        declared[name] = { kind, line: lineno };
+        continue;
+      }
+
+      // Assignment: id =
+      const assignMatch = line.match(/^([A-Za-z][A-Za-z0-9_]*)\s*=/);
+      if (assignMatch) {
+        const name = assignMatch[1];
+        if (!declared[name]) {
+          errors.push({ line: lineno, message: `Assignment to undeclared variable '${name}'` });
+        } else if (declared[name].kind === 'let') {
+          errors.push({ line: lineno, message: `Assignment to immutable 'let' variable '${name}' declared at line ${declared[name].line}` });
+        }
+      }
+    }
+
+    // continue search after this function body
+    fnRegex.lastIndex = endPos + 1;
+  }
+
+  return errors;
 }
 
-export default { buildAST };
+// New compatibility wrapper: try to parse AST and run AST-based analyzer if available
+// If caller passes a parsed AST instead of source string, support that too.
+export function validate(input) {
+  // If input is an AST (object with type 'Program'), call analyzeAst
+  if (input && typeof input === 'object' && input.type === 'Program') {
+    const errs = analyzeAst(input);
+    return errs;
+  }
+  // Otherwise assume input is source string and use the text-scanning validator for now
+  return validateDeclarations(input);
+}
+
+export default { validateDeclarations, validate };
