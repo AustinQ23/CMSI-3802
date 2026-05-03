@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { buildAST } from './astBuilder.js';
+import { buildAST } from './core.js';
 import { analyze } from './analyzer.js';
 import { optimize } from './optimizer.js';
 import { generateJS } from './generator.js';
