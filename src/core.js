@@ -4,10 +4,6 @@ import * as ohm from 'ohm-js';
 const grammarText = fs.readFileSync(new URL('../src/TEMP_JS.ohm', import.meta.url), 'utf8');
 const G = ohm.grammar(grammarText);
 
-function flatten(list) {
-  return list.children ? list.children.map(c => c.ast()) : [];
-}
-
 const semantics = G.createSemantics();
 
 // Helper constructors

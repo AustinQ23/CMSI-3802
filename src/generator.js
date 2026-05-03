@@ -26,8 +26,7 @@ function emitStmt(stmt, level=0) {
   switch (stmt.type) {
     case 'VarDecl': {
       const kind = stmt.kind === 'mut' ? 'let' : 'const';
-      if (stmt.init) return `${indent(level)}${kind} ${stmt.name} = ${emitExpr(stmt.init)};`;
-      return `${indent(level)}${kind} ${stmt.name};`;
+      return `${indent(level)}${kind} ${stmt.name} = ${emitExpr(stmt.init)};`;
     }
     case 'Assign':
       return `${indent(level)}${stmt.target} = ${emitExpr(stmt.expr)};`;

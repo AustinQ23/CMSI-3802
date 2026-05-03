@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { compile } from '../src/compiler.js';
+import { generateJS } from '../src/generator.js';
 
 function gen(src) {
   const { result, diagnostics } = compile(src, 'js');
@@ -134,8 +135,62 @@ test('generator: for loop body is indented', () => {
   assert.ok(out.includes('console.log(x)'));
 });
 
+// ── Unary expressions ─────────────────────────────────────────────────────
+
+test('generator: unary ! emits prefix operator', () => {
+  const out = gen('fn f() { let flag = true let x = !flag }');
+  assert.ok(out.includes('(!flag)'));
+});
+
+test('generator: unary - emits prefix operator', () => {
+  const out = gen('fn f() { let a = [1] let x = a[0] let y = -x }');
+  assert.ok(out.includes('(-x)'));
+});
+
+// ── Error handling ─────────────────────────────────────────────────────────
+
+test('generator: generateJS throws on unknown expression type', () => {
+  assert.throws(
+    () => generateJS({ type: 'Program', body: [{ type: 'VarDecl', kind: 'let', name: 'x', init: { type: 'BogusExpr' } }] }),
+    /Unhandled expr kind/
+  );
+});
+
+// ── Block nodes ────────────────────────────────────────────────────────────
+
+test('generator: Block node from optimized if-true emits statements inline', () => {
+  const out = gen('fn f() { if true { let x = 1 let y = 2 } }');
+  assert.ok(out.includes('const x = 1'));
+  assert.ok(out.includes('const y = 2'));
+});
+
+// ── Standalone expression statements ──────────────────────────────────────
+
+test('generator: standalone function call as statement emits call with semicolon', () => {
+  const out = gen('fn ping() { return 1 } fn f() { ping() }');
+  assert.ok(out.includes('ping();'));
+});
+
+// ── Top-level statements ───────────────────────────────────────────────────
+
+test('generator: top-level variable declaration emits outside any function', () => {
+  const out = gen('let x = 5');
+  assert.ok(out.includes('const x = 5'));
+  assert.ok(!out.includes('main()'));
+});
+
 // ── Assignment ─────────────────────────────────────────────────────────────
 
 test('generator: reassignment emits plain assignment', () => {
   assert.ok(contains('fn f() { mut x = 1 x = 2 }', 'x = 2'));
+});
+
+test('generator: power operator emits **', () => {
+  const out = gen('fn f() { let a = [1] let x = a[0] let y = x ** 2 }');
+  assert.ok(out.includes('**'));
+});
+
+test('generator: parenthesized expression is preserved', () => {
+  const out = gen('fn f() { let a = [1] let x = a[0] let y = (x + 1) }');
+  assert.ok(out.includes('(x + 1)'));
 });

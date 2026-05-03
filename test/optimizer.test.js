@@ -213,6 +213,13 @@ test('optimizer: for loop body has dead code removed', () => {
   assert.equal(result.body[0].type, 'Break');
 });
 
+test('optimizer: Block node passes through unchanged', () => {
+  const block = { type: 'Block', body: [{ type: 'Break' }] };
+  const result = optimize(block);
+  assert.equal(result.type, 'Block');
+  assert.equal(result.body.length, 1);
+});
+
 // ── Program-level dead code removal ───────────────────────────────────────
 
 test('optimizer: dead statements are filtered from program body', () => {
@@ -226,4 +233,14 @@ test('optimizer: dead statements are filtered from program body', () => {
   const result = optimize(prog);
   assert.equal(result.body.length, 1);
   assert.equal(result.body[0].type, 'Break');
+});
+
+test('optimizer: division by zero is not constant folded', () => {
+  const result = optimize(bin('/', lit(5), lit(0)));
+  assert.equal(result.type, 'Binary');
+});
+
+test('optimizer: modulo by zero is not constant folded', () => {
+  const result = optimize(bin('%', lit(5), lit(0)));
+  assert.equal(result.type, 'Binary');
 });

@@ -2,7 +2,7 @@ import fs from 'fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as ohm from 'ohm-js';
-import { validateDeclarations } from '../src/semantic.js';
+import { validateDeclarations, validate } from '../src/semantic.js';
 
 const grammarText = fs.readFileSync('src/TEMP_JS.ohm', 'utf8');
 const G = ohm.grammar(grammarText);
@@ -111,4 +111,36 @@ fn mut_example() {
   assert.equal(r.ok, true, r.message);
   const errs = validateDeclarations(code);
   assert.equal(errs.length, 0, `Semantic errors found: ${JSON.stringify(errs)}`);
+});
+
+test('semantics: let mutation via validateDeclarations is an error', () => {
+  const errs = validateDeclarations('fn f() {\n  let x = 5\n  x = 10\n}');
+  assert.ok(errs.length > 0);
+  assert.ok(errs[0].message.includes('immutable'));
+});
+
+test('semantics: unclosed function brace returns no errors and does not crash', () => {
+  const errs = validateDeclarations('fn f() {');
+  assert.equal(errs.length, 0);
+});
+
+test('semantics: fn keyword with no opening brace returns no errors', () => {
+  const errs = validateDeclarations('fn f()');
+  assert.equal(errs.length, 0);
+});
+
+test('semantics: validate() with a non-Program object calls validateDeclarations', () => {
+  const result = validate({ type: 'NotAProgram' });
+  assert.ok(Array.isArray(result));
+});
+
+test('semantics: validate() with a Program AST calls the AST analyzer', () => {
+  const result = validate({ type: 'Program', body: [] });
+  assert.ok(Array.isArray(result));
+});
+
+test('semantics: validate() with a string calls validateDeclarations', () => {
+  const result = validate('fn f() {\n  x = 1\n}');
+  assert.ok(Array.isArray(result));
+  assert.ok(result.length > 0);
 });

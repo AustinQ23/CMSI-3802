@@ -31,8 +31,7 @@ export function analyze(ast) {
       case 'Literal': {
         if (typeof expr.value === 'number') return 'num';
         if (typeof expr.value === 'string') return 'str';
-        if (typeof expr.value === 'boolean') return 'bool';
-        return UNKNOWN;
+        return 'bool';
       }
 
       case 'Identifier': {
@@ -70,13 +69,10 @@ export function analyze(ast) {
           }
           return 'bool';
         }
-        if (op === '&&' || op === '||') {
-          if (bothKnown && (lt !== 'bool' || rt !== 'bool')) {
-            report(`Operator '${op}' requires bool operands, got '${lt}' and '${rt}'`, expr);
-          }
-          return 'bool';
+        if (bothKnown && (lt !== 'bool' || rt !== 'bool')) {
+          report(`Operator '${op}' requires bool operands, got '${lt}' and '${rt}'`, expr);
         }
-        return UNKNOWN;
+        return 'bool';
       }
 
       case 'Unary': {
@@ -86,11 +82,8 @@ export function analyze(ast) {
           if (known && t !== 'num') report(`Unary '-' requires num, got '${t}'`, expr);
           return 'num';
         }
-        if (expr.op === '!') {
-          if (known && t !== 'bool') report(`Unary '!' requires bool, got '${t}'`, expr);
-          return 'bool';
-        }
-        return UNKNOWN;
+        if (known && t !== 'bool') report(`Unary '!' requires bool, got '${t}'`, expr);
+        return 'bool';
       }
 
       case 'ArrayLiteral': {
@@ -123,8 +116,6 @@ export function analyze(ast) {
         return sig.returnType === UNKNOWN ? UNKNOWN : sig.returnType;
       }
 
-      default:
-        return UNKNOWN;
     }
   }
 

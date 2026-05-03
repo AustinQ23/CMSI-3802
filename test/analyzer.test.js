@@ -177,6 +177,40 @@ fn f() {
   assert.ok(hasError(src, 'Undeclared variable'));
 });
 
+// ── Unary operators ────────────────────────────────────────────────────────
+
+test('analyzer: unary minus on a num is valid', () => {
+  assert.ok(passes('fn f() { let x = -5 }'));
+});
+
+test('analyzer: unary ! on a bool is valid', () => {
+  assert.ok(passes('fn f() { let x = !true }'));
+});
+
+test('analyzer: unary minus on a bool is an error', () => {
+  assert.ok(hasError('fn f() { let x = -true }', "Unary '-' requires num"));
+});
+
+test('analyzer: unary ! on a num is an error', () => {
+  assert.ok(hasError('fn f() { let x = !5 }', "Unary '!' requires bool"));
+});
+
+// ── Comparison type checking ───────────────────────────────────────────────
+
+test('analyzer: == with mixed types is an error', () => {
+  assert.ok(hasError('fn f() { let x = 3 == "hello" }', "Cannot compare"));
+});
+
+test('analyzer: != with mixed types is an error', () => {
+  assert.ok(hasError('fn f() { let x = 3 != "hello" }', "Cannot compare"));
+});
+
+// ── Assign to undeclared ───────────────────────────────────────────────────
+
+test('analyzer: assign to completely undeclared variable is an error', () => {
+  assert.ok(hasError('fn f() { x = 5 }', 'undeclared'));
+});
+
 // ── Arrays ─────────────────────────────────────────────────────────────────
 
 test('analyzer: array literal infers type array', () => {
@@ -237,4 +271,12 @@ fn main() {
   print(b)
 }`;
   assert.ok(passes(src));
+});
+
+test('analyzer: && with bool operands is valid', () => {
+  assert.ok(passes('fn f() { let x = true && false }'));
+});
+
+test('analyzer: || with bool operands is valid', () => {
+  assert.ok(passes('fn f() { let x = true || false }'));
 });
