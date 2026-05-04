@@ -37,6 +37,10 @@ function emitStmt(stmt, level=0) {
       const kind = stmt.kind === 'mut' ? 'let' : 'const';
       return `${indent(level)}${kind} ${stmt.name} = ${emitExpr(stmt.init)};`;
     }
+    case 'IncrDecr':
+      return `${indent(level)}${stmt.target}${stmt.op};`;
+    case 'CompoundAssign':
+      return `${indent(level)}${stmt.target} ${stmt.op} ${emitExpr(stmt.expr)};`;
     case 'Assign':
       return `${indent(level)}${stmt.target} = ${emitExpr(stmt.expr)};`;
     case 'Print':
