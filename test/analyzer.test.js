@@ -282,7 +282,7 @@ test('analyzer: || with bool operands is valid', () => {
   assert.ok(passes('fn f() { let x = true || false }'));
 });
 
-// ── Null AST guard ──────
+// Null AST guard 
 
 test('analyzer: analyze(null) returns empty errors array', () => {
   assert.deepEqual(analyze(null), []);
@@ -305,7 +305,7 @@ test('analyzer: function with two returns of same type produces no inconsistency
   assert.ok(passes('fn f() { if true { return 1 } else { return 1 } }'));
 });
 
-// ── Match statement ────────────────────────────────────────────────────────
+// Match statement 
 
 test('analyzer: match on num with wildcard is valid', () => {
   assert.ok(passes('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }'));
@@ -359,7 +359,7 @@ test('analyzer: match with only wildcard arm is valid', () => {
   assert.ok(passes('fn f() { let x = 1 match x { _ => { print(x) } } }'));
 });
 
-// ── Enums ──────────────────────────────────────────────────────────────────
+// Enums 
 
 test('analyzer: enum member access is valid', () => {
   assert.ok(passes('enum Color { Red Green } fn f() { let c = Color.Red }'));
@@ -405,7 +405,7 @@ test('analyzer: duplicate enum variant patterns are an error', () => {
   assert.ok(hasError('enum A { X Y } fn f() { let a = A.X match a { A.X => { print(1) } A.X => { print(2) } _ => { } } }', "Duplicate pattern"));
 });
 
-// ── FString ────────────────────────────────────────────────────────────────
+// FString
 
 test('analyzer: fstring with no interpolations is valid', () => {
   assert.ok(passes('fn f() { let s = f"hello world" }'));

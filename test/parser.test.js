@@ -470,7 +470,7 @@ test('semantics: validate() with a string calls validateDeclarations', () => {
   assert.ok(result.length > 0);
 });
 
-// ── MatchStmt ──────────────────────────────────────────────────────────────
+// MatchStmt
 
 test('parser: match with literal arms produces Match node', () => {
   const tree = ast('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }');
@@ -526,7 +526,7 @@ test('parser: match keyword cannot be used as identifier', () => {
   assert.ok(errors.length > 0);
 });
 
-// ── EnumDecl ───────────────────────────────────────────────────────────────
+// EnumDecl 
 
 test('parser: enum declaration produces EnumDecl node', () => {
   const tree = ast('enum Color { Red Green Blue }');
@@ -561,7 +561,7 @@ test('parser: enum keyword cannot be used as identifier', () => {
   assert.ok(errors.length > 0);
 });
 
-// ── FString ────────────────────────────────────────────────────────────────
+// FString 
 
 test('parser: fstring produces FString node', () => {
   const tree = ast('fn f() { let s = f"hello" }');

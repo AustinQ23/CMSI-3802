@@ -203,7 +203,7 @@ test('generator: generateJS throws on non-Program AST', () => {
   assert.throws(() => generateJS({ type: 'FunctionDecl' }), /Invalid AST for codegen/);
 });
 
-// ── Match statement ────────────────────────────────────────────────────────
+// Match statement 
 
 test('generator: match emits if/else chain', () => {
   const out = gen('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }');
@@ -236,7 +236,7 @@ test('generator: match arm body statements are emitted', () => {
   assert.ok(out.includes('console.log(99)'));
 });
 
-// ── Enums ──────────────────────────────────────────────────────────────────
+// Enums
 
 test('generator: enum declaration emits Object.freeze', () => {
   const out = gen('enum Color { Red Green Blue }');
@@ -262,7 +262,7 @@ test('generator: enum variant match pattern emits correct comparison', () => {
   assert.ok(out.includes('__match === Color.Green'));
 });
 
-// ── FString ────────────────────────────────────────────────────────────────
+// FString 
 
 test('generator: fstring with text only emits template literal', () => {
   const out = gen('fn f() { let s = f"hello world" }');
@@ -285,7 +285,7 @@ test('generator: empty fstring emits empty template literal', () => {
   assert.ok(out.includes('``'));
 });
 
-// ── range() built-in ───────────────────────────────────────────────────────
+// range() built-in 
 
 test('generator: range call emits range()', () => {
   const out = gen('fn f() { for x in range(5) { print(x) } }');

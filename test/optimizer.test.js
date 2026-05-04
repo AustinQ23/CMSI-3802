@@ -301,7 +301,7 @@ test('optimizer: Unary with unknown op and literal expr returns node unchanged',
   assert.equal(result.op, '~');
 });
 
-// ── Match ──────────────────────────────────────────────────────────────────
+// Match
 
 const wildcard = { type: 'WildCard' };
 const arm = (pattern, ...stmts) => ({ pattern, body: stmts });
@@ -378,7 +378,7 @@ test('optimizer: match folds subject expression', () => {
   assert.equal(result.type, 'Break');
 });
 
-// ── EnumDecl / MemberAccess ────────────────────────────────────────────────
+// EnumDecl / MemberAccess 
 
 test('optimizer: EnumDecl passes through unchanged', () => {
   const node = { type: 'EnumDecl', name: 'Color', variants: ['Red', 'Green'] };
@@ -401,7 +401,7 @@ test('optimizer: match with EnumVariant arm passes through when subject is non-l
   assert.equal(result.type, 'Match');
 });
 
-// ── FString ────────────────────────────────────────────────────────────────
+// FString
 
 test('optimizer: fstring text parts pass through unchanged', () => {
   const node = { type: 'FString', parts: [{ type: 'FStringText', value: 'hello' }] };
