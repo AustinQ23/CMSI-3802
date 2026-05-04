@@ -461,7 +461,7 @@ test('analyzer: range() returns array type (can be indexed)', () => {
   assert.ok(passes('fn f() { let a = range(5) let x = a[0] }'));
 });
 
-// Floor division
+// ── Floor division ─────────────────────────────────────────────────────────
 
 test('analyzer: floor division of two nums is valid', () => {
   assert.ok(passes('fn f() { let x = 7 // 2 }'));
@@ -477,54 +477,4 @@ test('analyzer: floor division with str operand is a type error', () => {
 
 test('analyzer: # comment is ignored', () => {
   assert.ok(passes('fn f() { # this is a comment\nlet x = 1 }'));
-});
-
-// ++ / -- / += / -=
-
-test('analyzer: ++ on mut num is valid', () => {
-  assert.ok(passes('fn f() { mut x = 0 x++ }'));
-});
-
-test('analyzer: -- on mut num is valid', () => {
-  assert.ok(passes('fn f() { mut x = 5 x-- }'));
-});
-
-test('analyzer: ++ on let variable is an error', () => {
-  assert.ok(hasError('fn f() { let x = 0 x++ }', 'immutable'));
-});
-
-test('analyzer: ++ on a str variable is an error', () => {
-  assert.ok(hasError('fn f() { mut s = "hi" s++ }', "requires a num variable"));
-});
-
-test('analyzer: ++ on undeclared variable is an error', () => {
-  assert.ok(hasError('fn f() { ghost++ }', 'undeclared'));
-});
-
-test('analyzer: += on mut num is valid', () => {
-  assert.ok(passes('fn f() { mut x = 0 x += 5 }'));
-});
-
-test('analyzer: -= on mut num is valid', () => {
-  assert.ok(passes('fn f() { mut x = 10 x -= 3 }'));
-});
-
-test('analyzer: += on let variable is an error', () => {
-  assert.ok(hasError('fn f() { let x = 0 x += 1 }', 'immutable'));
-});
-
-test('analyzer: += with mismatched types is an error', () => {
-  assert.ok(hasError('fn f() { mut x = 0 x += "oops" }', "Cannot use '+='"));
-});
-
-test('analyzer: -= with str operand is an error', () => {
-  assert.ok(hasError('fn f() { mut x = 0 x -= "bad" }', "'-=' requires num"));
-});
-
-test('analyzer: += on str is valid (string concatenation)', () => {
-  assert.ok(passes('fn f() { mut s = "hello" s += " world" }'));
-});
-
-test('analyzer: += on undeclared variable is an error', () => {
-  assert.ok(hasError('fn f() { ghost += 1 }', 'undeclared'));
 });

@@ -432,7 +432,7 @@ test('optimizer: fstring with mixed parts folds only interp', () => {
   assert.equal(result.parts[1].expr.value, 6);
 });
 
-// Floor division
+// ── Floor division ─────────────────────────────────────────────────────────
 
 test('optimizer: folds 7 // 2 to 3', () => {
   const result = optimize(bin('//', lit(7), lit(2)));
@@ -449,27 +449,4 @@ test('optimizer: folds -7 // 2 to -4 (floors toward negative infinity)', () => {
 test('optimizer: floor division by zero is not constant folded', () => {
   const result = optimize(bin('//', lit(5), lit(0)));
   assert.equal(result.type, 'Binary');
-});
-
-// ++ / -- / += / -=
-
-test('optimizer: IncrDecr passes through unchanged', () => {
-  const node = { type: 'IncrDecr', target: 'x', op: '++' };
-  const result = optimize(node);
-  assert.equal(result.type, 'IncrDecr');
-  assert.equal(result.op, '++');
-});
-
-test('optimizer: CompoundAssign folds its expr', () => {
-  const node = { type: 'CompoundAssign', target: 'x', op: '+=', expr: bin('+', lit(1), lit(2)) };
-  const result = optimize(node);
-  assert.equal(result.expr.type, 'Literal');
-  assert.equal(result.expr.value, 3);
-});
-
-test('optimizer: CompoundAssign preserves target and op', () => {
-  const node = { type: 'CompoundAssign', target: 'y', op: '-=', expr: lit(5) };
-  const result = optimize(node);
-  assert.equal(result.target, 'y');
-  assert.equal(result.op, '-=');
 });

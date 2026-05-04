@@ -1,3 +1,4 @@
+import fs from 'fs';
 import * as ohm from 'ohm-js';
 
 const grammarText = String.raw`
@@ -110,14 +111,6 @@ semantics.addOperation('ast', {
     const k = kind.sourceString;
     const name = id.ast().name;
     return n('VarDecl', { kind: k, name, init: init.ast() });
-  },
-
-  CompoundAssign(id, op, exp) {
-    return n('CompoundAssign', { target: id.ast().name, op: op.sourceString, expr: exp.ast() });
-  },
-
-  IncrDecr(id, op) {
-    return n('IncrDecr', { target: id.ast().name, op: op.sourceString });
   },
 
   Assign(id, _eq, exp) {

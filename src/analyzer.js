@@ -5,7 +5,8 @@
 const UNKNOWN = 'unknown';
 
 const BUILTINS = {
-  range: { minArgs: 1, maxArgs: 3, returnType: 'array' },
+  range:     { minArgs: 1, maxArgs: 3, returnType: 'array' },
+  floor_div: { minArgs: 2, maxArgs: 2, returnType: 'num'   },
 };
 
 export function analyze(ast) {

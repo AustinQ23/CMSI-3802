@@ -26,12 +26,6 @@ export function optimize(node) {
         init: node.init ? optimize(node.init) : node.init
       };
 
-    case 'IncrDecr':
-      return node;
-
-    case 'CompoundAssign':
-      return { ...node, expr: optimize(node.expr) };
-
     case 'Assign':
       const optimizedExpr = optimize(node.expr);
       // Remove self-assignments: x = x

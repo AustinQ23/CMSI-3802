@@ -328,21 +328,3 @@ test('generator: floor division with variables emits Math.floor(a / b)', () => {
   const out = gen('fn f() { let a = [7] let x = a[0] let y = x // 2 }');
   assert.ok(out.includes('Math.floor(x / 2)'));
 });
-
-// ── ++ / -- / += / -= ─────────────────────────────────────────────────────
-
-test('generator: ++ emits postfix increment', () => {
-  assert.ok(contains('fn f() { mut x = 0 x++ }', 'x++;'));
-});
-
-test('generator: -- emits postfix decrement', () => {
-  assert.ok(contains('fn f() { mut x = 5 x-- }', 'x--;'));
-});
-
-test('generator: += emits compound assignment', () => {
-  assert.ok(contains('fn f() { mut x = 0 x += 5 }', 'x += 5;'));
-});
-
-test('generator: -= emits compound assignment', () => {
-  assert.ok(contains('fn f() { mut x = 10 x -= 3 }', 'x -= 3;'));
-});
