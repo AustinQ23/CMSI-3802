@@ -16,14 +16,14 @@ GitHub Pages Link: https://austinq23.github.io/TEMP_JS/
 
 ---
 
-Programming should be a seamless translation of thought into logic, but too often, developers spend their time fighting runtime errors, overly verbose type systems, and unintentional state mutations. We created TEMP_JS to solve these frustrations. TEMP_JS is built on the belief that a compiler should be your strictest mentor and your best friend. By forcing developers to be explicit about mutability, while intelligently inferring types behind the scenes, TEMP_JS catches logical bugs before the code ever runs. It pairs the expressive, uncluttered syntax of dynamic scripting languages with the safety of an AST-based semantic analyzer.
+Programming should be a seamless translation of thought into logic, but too often, developers spend their time fighting runtime errors, overly complex type systems, and unintentional state mutations. We created TEMP_JS to solve these frustrations. TEMP_JS is built on the belief that a compiler should be your strictest mentor and your best friend. By forcing developers to be explicit about mutability, while intelligently inferring types behind the scenes, TEMP_JS catches logical bugs before the code ever runs. It combines the expressive syntax of dynamic scripting languages with a compiler that checks program correctness using an abstract syntax tree.
 
 ---
 
 ## Features
 
 * **Type Inference:** Catch type errors at compile-time without writing a single type annotation. The compiler infers types from initializers and literals.
-* **Immutable by Default:** Variables defined with `let` cannot be mutated. Opt-in to mutability using `mut`.
+* **Immutable by Default:** Variables defined with `let` cannot be mutated. Opt-in to mutability by using `mut`.
 * **AST Optimization:** Features an optimization phase that automatically performs constant folding and dead code elimination.
 * **Clean Syntax:** Minimalist punctuation (no semicolons required) and unified array handling without sacrificing readability.
 * **JavaScript Transpilation:** Compiles down to clean, optimized JavaScript (`.js`) ready to be executed in any modern JS environment or browser.
