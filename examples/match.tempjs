@@ -1,5 +1,3 @@
-// match example: day-of-week classifier
-
 fn day_name(n) {
     match n {
         1 => { return "Monday" }
