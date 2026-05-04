@@ -38,6 +38,14 @@ semantics.addOperation('ast', {
     return n('VarDecl', { kind: k, name, init: init.ast() });
   },
 
+  CompoundAssign(id, op, exp) {
+    return n('CompoundAssign', { target: id.ast().name, op: op.sourceString, expr: exp.ast() });
+  },
+
+  IncrDecr(id, op) {
+    return n('IncrDecr', { target: id.ast().name, op: op.sourceString });
+  },
+
   Assign(id, _eq, exp) {
     return n('Assign', { target: id.ast().name, expr: exp.ast() });
   },

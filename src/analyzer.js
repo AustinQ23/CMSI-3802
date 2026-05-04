@@ -161,6 +161,43 @@ export function analyze(ast) {
           break;
         }
 
+        case 'IncrDecr': {
+          const info = env[s.target];
+          if (!info) {
+            report(`Assignment to undeclared variable '${s.target}'`, s);
+          } else if (info.kind === 'let') {
+            report(`Cannot modify immutable variable '${s.target}' (declared with 'let')`, s);
+          } else if (info.type && info.type !== UNKNOWN && info.type !== 'num') {
+            report(`'${s.op}' requires a num variable, got '${info.type}'`, s);
+          }
+          break;
+        }
+
+        case 'CompoundAssign': {
+          const info = env[s.target];
+          if (!info) {
+            report(`Assignment to undeclared variable '${s.target}'`, s);
+          } else if (info.kind === 'let') {
+            report(`Cannot modify immutable variable '${s.target}' (declared with 'let')`, s);
+          } else {
+            const exprType = inferType(s.expr, env);
+            const bothKnown = info.type !== UNKNOWN && exprType && exprType !== UNKNOWN;
+            if (s.op === '-=') {
+              if (bothKnown && (info.type !== 'num' || exprType !== 'num')) {
+                report(`'-=' requires num operands, got '${info.type}' and '${exprType}'`, s);
+              }
+            } else {
+              if (bothKnown && info.type !== exprType) {
+                report(`Cannot use '+=' with '${info.type}' and '${exprType}'`, s);
+              }
+              if (bothKnown && info.type !== 'num' && info.type !== 'str') {
+                report(`'+=' requires num or str operands, got '${info.type}'`, s);
+              }
+            }
+          }
+          break;
+        }
+
         case 'Assign': {
           const info = env[s.target];
           if (!info) {

@@ -7,6 +7,8 @@ TEMP_JS {
 
   Statement   = VarDecl
               | IndexAssign
+              | CompoundAssign
+              | IncrDecr
               | Assign
               | Print
               | IfStmt
@@ -17,9 +19,11 @@ TEMP_JS {
               | BreakStmt
               | ExpStmt
 
-  VarDecl     = ("let" | "mut") id "=" Exp
-  IndexAssign = id "[" Exp "]" "=" Exp
-  Assign      = id "=" Exp
+  VarDecl        = ("let" | "mut") id "=" Exp
+  IndexAssign    = id "[" Exp "]" "=" Exp
+  CompoundAssign = id ("+=" | "-=") Exp
+  IncrDecr       = id ("++" | "--")
+  Assign         = id "=" Exp
   Print       = "print" "(" Exp ")"
   IfStmt      = "if" Exp "{" Statement* "}" "else" "{" Statement* "}" -- long
               | "if" Exp "{" Statement* "}" -- short
