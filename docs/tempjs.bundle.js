@@ -2153,13 +2153,13 @@ UnicodeChar.prototype.toFailure = function(grammar2) {
   return new Failure(this, "a Unicode [" + this.categoryOrProp + "] character", "description");
 };
 Alt.prototype.toFailure = function(grammar2) {
-  const fs = this.terms.map((t) => t.toFailure(grammar2));
-  const description = "(" + fs.join(" or ") + ")";
+  const fs2 = this.terms.map((t) => t.toFailure(grammar2));
+  const description = "(" + fs2.join(" or ") + ")";
   return new Failure(this, description, "description");
 };
 Seq.prototype.toFailure = function(grammar2) {
-  const fs = this.factors.map((f) => f.toFailure(grammar2));
-  const description = "(" + fs.join(" ") + ")";
+  const fs2 = this.factors.map((f) => f.toFailure(grammar2));
+  const description = "(" + fs2.join(" ") + ")";
   return new Failure(this, description, "description");
 };
 Iter.prototype.toFailure = function(grammar2) {
@@ -3878,9 +3878,9 @@ function buildGrammar2(match, namespace, optOhmGrammarForTesting, options) {
         decl.withSuperGrammar(namespace[superGrammarName]);
       }
     },
-    Rule_define(n2, fs, d, _, b) {
+    Rule_define(n2, fs2, d, _, b) {
       currentRuleName = n2.visit();
-      currentRuleFormals = fs.children.map((c) => c.visit())[0] || [];
+      currentRuleFormals = fs2.children.map((c) => c.visit())[0] || [];
       if (!decl.defaultStartRule && decl.ensureSuperGrammar() !== Grammar.ProtoBuiltInRules) {
         decl.withDefaultStartRule(currentRuleName);
       }
@@ -3889,9 +3889,9 @@ function buildGrammar2(match, namespace, optOhmGrammarForTesting, options) {
       const source = this.source.trimmed();
       return decl.define(currentRuleName, currentRuleFormals, body, description, source);
     },
-    Rule_override(n2, fs, _, b) {
+    Rule_override(n2, fs2, _, b) {
       currentRuleName = n2.visit();
-      currentRuleFormals = fs.children.map((c) => c.visit())[0] || [];
+      currentRuleFormals = fs2.children.map((c) => c.visit())[0] || [];
       const source = this.source.trimmed();
       decl.ensureSuperGrammarRuleForOverriding(currentRuleName, source);
       overriding = true;
@@ -3899,9 +3899,9 @@ function buildGrammar2(match, namespace, optOhmGrammarForTesting, options) {
       overriding = false;
       return decl.override(currentRuleName, currentRuleFormals, body, null, source);
     },
-    Rule_extend(n2, fs, _, b) {
+    Rule_extend(n2, fs2, _, b) {
       currentRuleName = n2.visit();
-      currentRuleFormals = fs.children.map((c) => c.visit())[0] || [];
+      currentRuleFormals = fs2.children.map((c) => c.visit())[0] || [];
       const body = b.visit();
       const source = this.source.trimmed();
       return decl.extend(currentRuleName, currentRuleFormals, body, null, source);
@@ -3928,8 +3928,8 @@ function buildGrammar2(match, namespace, optOhmGrammarForTesting, options) {
         return builder.alt(...args).withSource(this.source);
       }
     },
-    Formals(opointy, fs, cpointy) {
-      return fs.visit();
+    Formals(opointy, fs2, cpointy) {
+      return fs2.visit();
     },
     Params(opointy, ps, cpointy) {
       return ps.visit();
@@ -4075,8 +4075,8 @@ function initPrototypeParser(grammar2) {
         formals: optFormals.children.map((c) => c.parse())[0] || []
       };
     },
-    Formals(oparen, fs, cparen) {
-      return fs.asIteration().children.map((c) => c.parse());
+    Formals(oparen, fs2, cparen) {
+      return fs2.asIteration().children.map((c) => c.parse());
     },
     name(first, rest) {
       return this.sourceString;
@@ -4262,74 +4262,8 @@ function grammar(source, optNamespace) {
   return _grammar(source, optNamespace);
 }
 
-// src/core.js
-var grammarText = String.raw`
-TEMP_JS {
-  Program     = Decl+
-  Decl        = FuncDecl | VarDecl | Statement
-
-  FuncDecl    = "fn" id "(" ListOf<Param, ","> ")" "{" Statement* "}"
-  Param       = id
-
-  Statement   = VarDecl
-              | IndexAssign
-              | Assign
-              | Print
-              | IfStmt
-              | WhileStmt
-              | ForStmt
-              | ReturnStmt
-              | BreakStmt
-              | ExpStmt
-
-  VarDecl     = ("let" | "mut") id "=" Exp
-  IndexAssign = id "[" Exp "]" "=" Exp
-  Assign      = id "=" Exp
-  Print       = "print" "(" Exp ")"
-  IfStmt      = "if" Exp "{" Statement* "}" "else" "{" Statement* "}" -- long
-              | "if" Exp "{" Statement* "}" -- short
-  WhileStmt   = "while" Exp "{" Statement* "}"
-  ForStmt     = "for" id "in" Exp "{" Statement* "}"
-  ReturnStmt  = "return" Exp?
-  BreakStmt   = "break"
-  ExpStmt     = Exp
-
-  Exp         = Exp "||" Exp1         -- or
-              | Exp1
-  Exp1        = Exp1 "&&" Exp2        -- and
-              | Exp2
-  Exp2        = Exp3 relop Exp3       -- compare
-              | Exp3
-  Exp3        = Exp3 addop Exp4       -- add
-              | Exp4
-  Exp4        = Exp4 mulop Exp5       -- multiply
-              | Exp5
-  Exp5        = prefixop Exp6         -- prefix
-              | Exp6
-  Exp6        = Exp7 "**" Exp6        -- power
-              | Exp7
-  Exp7        = Exp7 "[" Exp "]"             -- index
-              | "[" ListOf<Exp, ","> "]"     -- array
-              | literal
-              | id "(" ListOf<Exp, ","> ")"  -- call
-              | id                           -- id
-              | "(" Exp ")"                  -- parens
-
-  relop       = "<=" | ">=" | "==" | "!=" | "<" | ">"
-  addop       = "+" | "-"
-  mulop       = "*" | "/" | "%"
-  prefixop    = "-" | "!"
-
-  id          = ~keyword letter (alnum | "_")*
-  keyword     = ("fn" | "let" | "mut" | "if" | "else" | "while" | "for" | "in" | "return" | "break" | "print" | "true" | "false") ~(alnum | "_")
-  literal     = num | string | true | false
-  num         = digit+ ("." digit+)?
-  string      = "\"" (~"\"" any)* "\""
-  true        = "true"
-  false       = "false"
-
-  space      += "//" (~"\n" any)* "\n"?  -- comment
-}`;
+// src/parser.js
+var grammarText = fs.readFileSync(new URL("./TEMP_JS.ohm", import.meta.url), "utf8");
 var G = grammar(grammarText);
 var semantics = G.createSemantics();
 var n = (type, props) => ({ type, ...props });
@@ -4339,6 +4273,9 @@ semantics.addOperation("ast", {
   },
   Decl(d) {
     return d.ast();
+  },
+  EnumDecl(_enum, name, _open, variants, _close) {
+    return n("EnumDecl", { name: name.ast().name, variants: variants.children.map((v) => v.ast().name) });
   },
   FuncDecl(_fn, name, _open, params, _close, _openb, stmts, _closeb) {
     const pname = name.ast().name;
@@ -4378,6 +4315,21 @@ semantics.addOperation("ast", {
   ForStmt(_for, id, _in, iterable, _open, stmts, _close) {
     return n("For", { variable: id.ast().name, iterable: iterable.ast(), body: stmts.children.map((s) => s.ast()) });
   },
+  MatchStmt(_match, subject, _open, arms, _close) {
+    return n("Match", { subject: subject.ast(), arms: arms.children.map((a) => a.ast()) });
+  },
+  MatchArm(pattern, _arrow, _open, stmts, _close) {
+    return { pattern: pattern.ast(), body: stmts.children.map((s) => s.ast()) };
+  },
+  MatchPattern_wildcard(_) {
+    return n("WildCard", {});
+  },
+  MatchPattern_variant(enumId, _dot, variantId) {
+    return n("EnumVariant", { enum: enumId.ast().name, variant: variantId.ast().name });
+  },
+  MatchPattern_lit(lit) {
+    return lit.ast();
+  },
   IndexAssign(id, _open, index, _close, _eq, value) {
     return n("IndexAssign", { target: id.ast().name, index: index.ast(), value: value.ast() });
   },
@@ -4405,25 +4357,25 @@ semantics.addOperation("ast", {
     return left.ast();
   },
   Exp2_compare(left, op, right) {
-    return n("Binary", { op: op.sourceString, left: left.ast(), right: right.ast() });
+    return n("Binary", { op: op.ast(), left: left.ast(), right: right.ast() });
   },
   Exp2(left) {
     return left.ast();
   },
   Exp3_add(left, op, right) {
-    return n("Binary", { op: op.sourceString, left: left.ast(), right: right.ast() });
+    return n("Binary", { op: op.ast(), left: left.ast(), right: right.ast() });
   },
   Exp3(left) {
     return left.ast();
   },
   Exp4_multiply(left, op, right) {
-    return n("Binary", { op: op.sourceString, left: left.ast(), right: right.ast() });
+    return n("Binary", { op: op.ast(), left: left.ast(), right: right.ast() });
   },
   Exp4(left) {
     return left.ast();
   },
   Exp5_prefix(op, expr) {
-    return n("Unary", { op: op.sourceString, expr: expr.ast() });
+    return n("Unary", { op: op.ast(), expr: expr.ast() });
   },
   Exp5(expr) {
     return expr.ast();
@@ -4443,6 +4395,9 @@ semantics.addOperation("ast", {
   Exp7_call(id, _open, args, _close) {
     const argList = args.asIteration().children.map((c) => c.ast());
     return n("Call", { callee: id.ast().name, args: argList });
+  },
+  Exp7_member(obj, _dot, member) {
+    return n("MemberAccess", { object: obj.ast().name, member: member.ast().name });
   },
   Exp7_id(id) {
     return id.ast();
@@ -4465,6 +4420,10 @@ semantics.addOperation("ast", {
   id(a, b) {
     return n("Identifier", { name: this.sourceString });
   },
+  fstring(_open, _chars, _close) {
+    const raw = this.sourceString.slice(2, -1);
+    return n("FString", { parts: parseFStringParts(raw) });
+  },
   num(a, b, c) {
     return n("Literal", { value: Number(this.sourceString) });
   },
@@ -4476,13 +4435,6 @@ semantics.addOperation("ast", {
   },
   false(_false) {
     return n("Literal", { value: false });
-  },
-  // default
-  _terminal() {
-    return this.sourceString;
-  },
-  _iter(...children) {
-    return children.map((c) => c.ast ? c.ast() : c);
   }
 });
 function buildAST(src) {
@@ -4493,9 +4445,32 @@ function buildAST(src) {
   const ast = semantics(match).ast();
   return { ast, errors: [] };
 }
+function parseFStringParts(raw) {
+  const parts = [];
+  let textStart = 0;
+  let i = 0;
+  while (i < raw.length) {
+    if (raw[i] === "{") {
+      if (i > textStart) parts.push({ type: "FStringText", value: raw.slice(textStart, i) });
+      const end2 = raw.indexOf("}", i + 1);
+      const exprSrc = raw.slice(i + 1, end2 === -1 ? raw.length : end2);
+      const { ast } = buildAST(exprSrc);
+      parts.push({ type: "FStringInterp", expr: ast?.body[0] ?? null });
+      i = end2 === -1 ? raw.length : end2 + 1;
+      textStart = i;
+    } else {
+      i++;
+    }
+  }
+  if (textStart < raw.length) parts.push({ type: "FStringText", value: raw.slice(textStart) });
+  return parts;
+}
 
 // src/analyzer.js
 var UNKNOWN = "unknown";
+var BUILTINS = {
+  range: { minArgs: 1, maxArgs: 3, returnType: "array" }
+};
 function analyze(ast) {
   const errors = [];
   if (!ast) return errors;
@@ -4503,9 +4478,12 @@ function analyze(ast) {
     errors.push({ message: msg, node });
   }
   const funcSigs = /* @__PURE__ */ Object.create(null);
+  const enumRegistry = /* @__PURE__ */ Object.create(null);
   for (const node of ast.body) {
     if (node.type === "FunctionDecl") {
       funcSigs[node.name] = { paramCount: node.params.length, returnType: UNKNOWN };
+    } else if (node.type === "EnumDecl") {
+      enumRegistry[node.name] = new Set(node.variants);
     }
   }
   function inferType(expr, env) {
@@ -4529,7 +4507,7 @@ function analyze(ast) {
         const rt = inferType(expr.right, env);
         const op = expr.op;
         const bothKnown = lt && lt !== UNKNOWN && rt && rt !== UNKNOWN;
-        if (["+", "-", "*", "/", "%", "**"].includes(op)) {
+        if (["+", "-", "*", "/", "//", "%", "**"].includes(op)) {
           if (op === "+" && bothKnown && lt === "str" && rt === "str") return "str";
           if (bothKnown && (lt !== "num" || rt !== "num")) {
             report(`Operator '${op}' requires num operands, got '${lt}' and '${rt}'`, expr);
@@ -4578,17 +4556,40 @@ function analyze(ast) {
         }
         return UNKNOWN;
       }
+      case "FString": {
+        for (const part of expr.parts) {
+          if (part.type === "FStringInterp") inferType(part.expr, env);
+        }
+        return "str";
+      }
+      case "MemberAccess": {
+        const enumDef = enumRegistry[expr.object];
+        if (!enumDef) {
+          report(`Undeclared enum '${expr.object}'`, expr);
+          return null;
+        }
+        if (!enumDef.has(expr.member)) {
+          report(`Enum '${expr.object}' has no variant '${expr.member}'`, expr);
+          return null;
+        }
+        return expr.object;
+      }
       case "Call": {
+        const builtin = BUILTINS[expr.callee];
         const sig = funcSigs[expr.callee];
-        if (!sig) {
+        if (!sig && !builtin) {
           report(`Call to undeclared function '${expr.callee}'`, expr);
           return null;
         }
-        if (expr.args.length !== sig.paramCount) {
+        if (sig && expr.args.length !== sig.paramCount) {
           report(`'${expr.callee}' expects ${sig.paramCount} argument(s), got ${expr.args.length}`, expr);
         }
+        if (builtin && (expr.args.length < builtin.minArgs || expr.args.length > builtin.maxArgs)) {
+          report(`'${expr.callee}' expects ${builtin.minArgs}-${builtin.maxArgs} argument(s), got ${expr.args.length}`, expr);
+        }
         for (const arg of expr.args) inferType(arg, env);
-        return sig.returnType === UNKNOWN ? UNKNOWN : sig.returnType;
+        const rt = sig ? sig.returnType : builtin.returnType;
+        return rt === UNKNOWN ? UNKNOWN : rt;
       }
     }
   }
@@ -4663,6 +4664,67 @@ function analyze(ast) {
           inferType(s.value, env);
           break;
         }
+        case "Match": {
+          const subjectType = inferType(s.subject, env);
+          const wildcardIdx = s.arms.findIndex((a) => a.pattern.type === "WildCard");
+          if (wildcardIdx !== -1 && wildcardIdx !== s.arms.length - 1) {
+            report(`Wildcard arm must be the last arm in a match expression`, s);
+          }
+          const seen = /* @__PURE__ */ new Set();
+          for (const arm of s.arms) {
+            if (arm.pattern.type !== "WildCard") {
+              const key = arm.pattern.type === "EnumVariant" ? `${arm.pattern.enum}.${arm.pattern.variant}` : JSON.stringify(arm.pattern.value);
+              if (seen.has(key)) {
+                report(`Duplicate pattern '${key}' in match expression`, s);
+              }
+              seen.add(key);
+            }
+          }
+          if (subjectType && subjectType !== UNKNOWN) {
+            for (const arm of s.arms) {
+              if (arm.pattern.type === "Literal") {
+                const patType = typeof arm.pattern.value === "number" ? "num" : typeof arm.pattern.value === "string" ? "str" : "bool";
+                if (patType !== subjectType) {
+                  report(`Pattern type '${patType}' does not match subject type '${subjectType}'`, s);
+                }
+              } else if (arm.pattern.type === "EnumVariant") {
+                const enumDef = enumRegistry[arm.pattern.enum];
+                if (!enumDef) {
+                  report(`Undeclared enum '${arm.pattern.enum}'`, s);
+                } else if (!enumDef.has(arm.pattern.variant)) {
+                  report(`Enum '${arm.pattern.enum}' has no variant '${arm.pattern.variant}'`, s);
+                } else if (arm.pattern.enum !== subjectType) {
+                  report(`Pattern type '${arm.pattern.enum}' does not match subject type '${subjectType}'`, s);
+                }
+              }
+            }
+            const hasWildcard = wildcardIdx !== -1;
+            if (!hasWildcard) {
+              if (subjectType === "bool") {
+                const hasTrue = s.arms.some((a) => a.pattern.type === "Literal" && a.pattern.value === true);
+                const hasFalse = s.arms.some((a) => a.pattern.type === "Literal" && a.pattern.value === false);
+                if (!hasTrue || !hasFalse) {
+                  report(`Non-exhaustive match on 'bool': must cover both true and false or include a wildcard`, s);
+                }
+              } else if (subjectType === "num" || subjectType === "str") {
+                report(`Non-exhaustive match on '${subjectType}': must include a wildcard arm`, s);
+              } else if (enumRegistry[subjectType]) {
+                const covered = new Set(
+                  s.arms.filter((a) => a.pattern.type === "EnumVariant").map((a) => a.pattern.variant)
+                );
+                for (const v of enumRegistry[subjectType]) {
+                  if (!covered.has(v)) {
+                    report(`Non-exhaustive match on '${subjectType}': variant '${v}' not covered`, s);
+                  }
+                }
+              }
+            }
+          }
+          for (const arm of s.arms) {
+            walkStmts(arm.body, Object.create(env), inLoop, currentFunc);
+          }
+          break;
+        }
         case "For": {
           const iterType = inferType(s.iterable, env);
           if (iterType && iterType !== UNKNOWN && iterType !== "array") {
@@ -4690,6 +4752,7 @@ function analyze(ast) {
         funcEnv[p.name] = { kind: "let", type: UNKNOWN };
       }
       walkStmts(top.body || [], funcEnv, false, { name: top.name });
+    } else if (top.type === "EnumDecl") {
     } else {
       walkStmts([top], globalEnv, false, null);
     }
@@ -4707,6 +4770,8 @@ function optimize(node) {
         body: node.body.map(optimize).filter((stmt) => stmt !== null)
         // remove nulls from dead code
       };
+    case "EnumDecl":
+      return node;
     case "FunctionDecl":
       return {
         ...node,
@@ -4772,6 +4837,15 @@ function optimize(node) {
       return node;
     case "Identifier":
       return node;
+    case "MemberAccess":
+      return node;
+    case "FString":
+      return {
+        ...node,
+        parts: node.parts.map(
+          (p) => p.type === "FStringInterp" ? { ...p, expr: optimize(p.expr) } : p
+        )
+      };
     case "Binary":
       const left = optimize(node.left);
       const right = optimize(node.right);
@@ -4791,6 +4865,9 @@ function optimize(node) {
             break;
           case "/":
             if (r !== 0) result = l / r;
+            break;
+          case "//":
+            if (r !== 0) result = Math.floor(l / r);
             break;
           case "%":
             if (r !== 0) result = l % r;
@@ -4876,6 +4953,23 @@ function optimize(node) {
       const forBody = node.body.map(optimize).filter((s) => s !== null);
       return { ...node, iterable: forIterable, body: forBody };
     }
+    case "Match": {
+      const matchSubject = optimize(node.subject);
+      const matchArms = node.arms.map((arm) => ({
+        ...arm,
+        body: arm.body.map(optimize).filter((s) => s !== null)
+      }));
+      if (matchSubject?.type === "Literal") {
+        for (const arm of matchArms) {
+          if (arm.pattern.type === "WildCard" || arm.pattern.value === matchSubject.value) {
+            const b = arm.body;
+            if (b.length === 0) return null;
+            return b.length === 1 ? b[0] : { type: "Block", body: b };
+          }
+        }
+      }
+      return { ...node, subject: matchSubject, arms: matchArms };
+    }
     case "Call":
       return {
         ...node,
@@ -4897,6 +4991,7 @@ function emitExpr(expr, level = 0) {
     case "Identifier":
       return expr.name;
     case "Binary":
+      if (expr.op === "//") return `Math.floor(${emitExpr(expr.left)} / ${emitExpr(expr.right)})`;
       return `(${emitExpr(expr.left)} ${expr.op} ${emitExpr(expr.right)})`;
     case "Unary":
       return `(${expr.op}${emitExpr(expr.expr)})`;
@@ -4906,6 +5001,14 @@ function emitExpr(expr, level = 0) {
       return `[${expr.elements.map((e) => emitExpr(e)).join(", ")}]`;
     case "IndexAccess":
       return `${emitExpr(expr.array)}[${emitExpr(expr.index)}]`;
+    case "MemberAccess":
+      return `${expr.object}.${expr.member}`;
+    case "FString": {
+      const content = expr.parts.map(
+        (p) => p.type === "FStringText" ? p.value : "${" + emitExpr(p.expr) + "}"
+      ).join("");
+      return "`" + content + "`";
+    }
     default:
       throw new Error(`Unhandled expr kind ${expr.type}`);
   }
@@ -4945,17 +5048,64 @@ ${indent(level)}}`;
 ${body}
 ${indent(level)}}`;
     }
+    case "Match": {
+      const lines = [`${indent(level)}{`];
+      lines.push(`${indent(level + 1)}const __match = ${emitExpr(stmt.subject)};`);
+      let first = true;
+      for (const arm of stmt.arms) {
+        const bodyCode = arm.body.map((s) => emitStmt(s, level + 2)).join("\n");
+        if (arm.pattern.type === "WildCard") {
+          lines.push(`${indent(level + 1)}${first ? "" : "else "}{
+${bodyCode}
+${indent(level + 1)}}`);
+        } else {
+          const kw = first ? "if" : "else if";
+          const patExpr = arm.pattern.type === "EnumVariant" ? `${arm.pattern.enum}.${arm.pattern.variant}` : JSON.stringify(arm.pattern.value);
+          lines.push(`${indent(level + 1)}${kw} (__match === ${patExpr}) {
+${bodyCode}
+${indent(level + 1)}}`);
+        }
+        first = false;
+      }
+      lines.push(`${indent(level)}}`);
+      return lines.join("\n");
+    }
     case "Block":
       return stmt.body.map((s) => emitStmt(s, level)).join("\n");
     default:
       return `${indent(level)}${emitExpr(stmt)};`;
   }
 }
+var RANGE_HELPER = `function range(start, stop, step) {
+  if (stop === undefined) { stop = start; start = 0; }
+  if (step === undefined) step = 1;
+  const result = [];
+  for (let i = start; i < stop; i += step) result.push(i);
+  return result;
+}`;
+function hasRangeCall(nodes) {
+  if (!nodes) return false;
+  for (const node of nodes) {
+    if (!node) continue;
+    if (node.type === "Call" && node.callee === "range") return true;
+    if (node.type === "FunctionDecl" && hasRangeCall(node.body)) return true;
+    if (node.type === "If" && (hasRangeCall(node.thenBody) || hasRangeCall(node.elseBody))) return true;
+    if (node.type === "While" && hasRangeCall(node.body)) return true;
+    if (node.type === "For" && (node.iterable?.type === "Call" && node.iterable.callee === "range" || hasRangeCall(node.body))) return true;
+    if (node.type === "Match" && node.arms?.some((a) => hasRangeCall(a.body))) return true;
+    if (node.args && hasRangeCall(node.args)) return true;
+  }
+  return false;
+}
 function generateJS(ast) {
   if (!ast || ast.type !== "Program") throw new Error("Invalid AST for codegen");
   const parts = [];
+  if (hasRangeCall(ast.body)) parts.push(RANGE_HELPER);
   for (const node of ast.body) {
-    if (node.type === "FunctionDecl") {
+    if (node.type === "EnumDecl") {
+      const pairs = node.variants.map((v) => `${v}: "${v}"`).join(", ");
+      parts.push(`const ${node.name} = Object.freeze({ ${pairs} });`);
+    } else if (node.type === "FunctionDecl") {
       const params = node.params.map((p) => p.name).join(", ");
       const body = node.body.map((s) => emitStmt(s, 1)).join("\n");
       parts.push(`function ${node.name}(${params}) {
