@@ -127,7 +127,7 @@
 
     <h3>1. Enums and Pattern Matching</h3>
     <p>This example demonstrates how to define <strong>Enums</strong> and use the <strong>Match</strong> statement to handle data variants. It showcases how TEMP_JS ensures exhaustiveness—meaning you must account for every possible enum variant or boolean state.</p>
-    <textarea id="code1" class="code-editor" spellcheck="false" rows="6">
+    <textarea id="code1" class="code-editor" spellcheck="false" rows="30">
 enum Direction { North South East West }
 
 enum Season { Spring Summer Fall Winter }
@@ -171,7 +171,7 @@ fn main() {
 
     <h3>2. Functions and String Interpolation</h3>
     <p>Here you can see <strong>Function declarations</strong> in action, along with <strong>f-strings</strong> (formatted strings). This example also highlights how scoping works within <code>if/else</code> branches and how the compiler handles mathematical expressions within print statements.</p>
-    <textarea id="code2" class="code-editor" spellcheck="false" rows="10">
+    <textarea id="code2" class="code-editor" spellcheck="false" rows="25">
 fn greet(name) {
   return f"Hello, {name}!"
 }
@@ -210,7 +210,7 @@ fn main() {
 
     <h3>3. Conditionals and While Loops</h3>
     <p>This program utilizes a <strong>while loop</strong> and <strong>mutable variables</strong> to iterate through a sequence. It combines these with a <code>match</code> statement to transform raw numbers into descriptive strings, demonstrating how the language handles logic flow and state changes.</p>
-    <textarea id="code3" class="code-editor" spellcheck="false" rows="9">
+    <textarea id="code3" class="code-editor" spellcheck="false" rows="25">
 fn day_name(n) {
     match n {
         1 => { return "Monday" }
@@ -255,7 +255,7 @@ fn main() {
 
     <h3>4. Ranges and For-In Loops</h3>
     <p>This example showcases the built-in <strong>range()</strong> function. It demonstrates the three ways to call range (single argument, start/stop, and start/stop/step) and how to use the <strong>for-in</strong> loop to iterate through these sequences efficiently.</p>
-    <textarea id="code4" class="code-editor" spellcheck="false" rows="11">
+    <textarea id="code4" class="code-editor" spellcheck="false" rows="20">
 fn sum_range(n) {
   mut total = 0
   for i in range(n) {
@@ -288,7 +288,7 @@ fn main() {
 
     <h3>5. Arrays and Mutability</h3>
     <p>The "Kitchen Sink" example focuses on <strong>Array manipulation</strong>. It shows how to pass arrays to functions, iterate over them, and perform <strong>index assignment</strong> on <code>mut</code> arrays. It serves as a practical look at how TEMP_JS handles collections and data mutability.</p>
-    <textarea id="code5" class="code-editor" spellcheck="false" rows="11">
+    <textarea id="code5" class="code-editor" spellcheck="false" rows="15">
 fn sum(nums) {
     mut total = 0
     for n in nums {
@@ -312,6 +312,69 @@ fn main() {
 }</textarea>
     <button class="btn run-btn" onclick="runCode('code5', 'out5')">Run Code</button>
     <pre id="out5" class="output hidden"></pre>
+    <h3>6. Nested Conditionals and Array Iteration</h3>
+    <p>This example demonstrates how to evaluate complex logic. Because TEMP_JS enforces explicit block scoping, chained conditionals are strictly nested. It also demonstrates how to write a custom array length counter since the language lacks a native <code>len()</code> function.</p>
+    <textarea id="code6" class="code-editor" spellcheck="false" rows="35">
+fn length(arr) {
+  mut count = 0
+  for x in arr {
+    count = count + 1
+  }
+  return count
+}
+
+fn grade(score) {
+  if score >= 90 {
+    return "A"
+  } else {
+    if score >= 80 {
+      return "B"
+    } else {
+      if score >= 70 {
+        return "C"
+      } else {
+        if score >= 60 {
+          return "D"
+        } else {
+          return "F"
+        }
+      }
+    }
+  }
+}
+
+fn categorize(items) {
+  let n = length(items)
+  if n == 0 {
+    return "empty"
+  } else {
+    if n <= 3 {
+      return "small"
+    } else {
+      if n <= 10 {
+        return "medium"
+      } else {
+        return "large"
+      }
+    }
+  }
+}
+
+fn main() {
+  let scores = [95, 82, 71, 63, 45]
+  for s in scores {
+    print(grade(s))
+  }
+
+  let a = []
+  let b = [1, 2]
+  let c = [1, 2, 3, 4, 5, 6, 7]
+  print(categorize(a))
+  print(categorize(b))
+  print(categorize(c))
+}</textarea>
+    <button class="btn run-btn" onclick="runCode('code6', 'out6')">Run Code</button>
+    <pre id="out6" class="output hidden"></pre>
 </section>
 
         <section id="creators">
