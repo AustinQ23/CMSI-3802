@@ -1,3 +1,4 @@
+import fs from 'fs';
 import * as ohm from 'ohm-js';
 
 const grammarText = fs.readFileSync(new URL('./TEMP_JS.ohm', import.meta.url), 'utf8');
