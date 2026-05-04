@@ -19,6 +19,12 @@ function emitExpr(expr, level=0) {
       return `${emitExpr(expr.array)}[${emitExpr(expr.index)}]`;
     case 'MemberAccess':
       return `${expr.object}.${expr.member}`;
+    case 'FString': {
+      const content = expr.parts.map(p =>
+        p.type === 'FStringText' ? p.value : '${' + emitExpr(p.expr) + '}'
+      ).join('');
+      return '`' + content + '`';
+    }
     default:
       throw new Error(`Unhandled expr kind ${expr.type}`);
   }

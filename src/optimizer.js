@@ -97,6 +97,14 @@ export function optimize(node) {
     case 'MemberAccess':
       return node;
 
+    case 'FString':
+      return {
+        ...node,
+        parts: node.parts.map(p =>
+          p.type === 'FStringInterp' ? { ...p, expr: optimize(p.expr) } : p
+        ),
+      };
+
     case 'Binary':
       const left = optimize(node.left);
       const right = optimize(node.right);

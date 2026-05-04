@@ -560,3 +560,45 @@ test('parser: enum keyword cannot be used as identifier', () => {
   assert.equal(tree, null);
   assert.ok(errors.length > 0);
 });
+
+// ── FString ────────────────────────────────────────────────────────────────
+
+test('parser: fstring produces FString node', () => {
+  const tree = ast('fn f() { let s = f"hello" }');
+  assert.equal(tree.body[0].body[0].init.type, 'FString');
+});
+
+test('parser: fstring with text-only part produces FStringText', () => {
+  const tree = ast('fn f() { let s = f"hello" }');
+  const parts = tree.body[0].body[0].init.parts;
+  assert.equal(parts[0].type, 'FStringText');
+  assert.equal(parts[0].value, 'hello');
+});
+
+test('parser: fstring with interpolation produces FStringInterp', () => {
+  const tree = ast('fn f(x) { let s = f"val: {x}" }');
+  const parts = tree.body[0].body[0].init.parts;
+  assert.equal(parts[0].type, 'FStringText');
+  assert.equal(parts[1].type, 'FStringInterp');
+  assert.equal(parts[1].expr.type, 'Identifier');
+});
+
+test('parser: fstring with multiple interpolations', () => {
+  const tree = ast('fn f(a, b) { let s = f"{a} and {b}" }');
+  const parts = tree.body[0].body[0].init.parts;
+  assert.equal(parts[0].type, 'FStringInterp');
+  assert.equal(parts[1].type, 'FStringText');
+  assert.equal(parts[2].type, 'FStringInterp');
+});
+
+test('parser: empty fstring produces FString with no parts', () => {
+  const tree = ast('fn f() { let s = f"" }');
+  assert.equal(tree.body[0].body[0].init.parts.length, 0);
+});
+
+test('parser: fstring interpolation can contain expressions', () => {
+  const tree = ast('fn f(x) { let s = f"result: {x + 1}" }');
+  const interp = tree.body[0].body[0].init.parts[1];
+  assert.equal(interp.expr.type, 'Binary');
+  assert.equal(interp.expr.op, '+');
+});

@@ -64,8 +64,9 @@ TEMP_JS {
 
   id          = ~keyword letter (alnum | "_")*
   keyword     = ("fn" | "let" | "mut" | "if" | "else" | "while" | "for" | "in" | "return" | "break" | "print" | "true" | "false" | "match" | "enum") ~(alnum | "_")
-  literal     = num | string | true | false
+  literal     = num | fstring | string | true | false
   num         = digit+ ("." digit+)?
+  fstring     = "f\"" (~"\"" any)* "\""
   string      = "\"" (~"\"" any)* "\""
   true        = "true"
   false       = "false"

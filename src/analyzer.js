@@ -105,6 +105,13 @@ export function analyze(ast) {
         return UNKNOWN;
       }
 
+      case 'FString': {
+        for (const part of expr.parts) {
+          if (part.type === 'FStringInterp') inferType(part.expr, env);
+        }
+        return 'str';
+      }
+
       case 'MemberAccess': {
         const enumDef = enumRegistry[expr.object];
         if (!enumDef) {

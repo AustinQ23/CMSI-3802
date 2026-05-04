@@ -404,3 +404,29 @@ test('analyzer: nonexistent variant in match pattern is an error', () => {
 test('analyzer: duplicate enum variant patterns are an error', () => {
   assert.ok(hasError('enum A { X Y } fn f() { let a = A.X match a { A.X => { print(1) } A.X => { print(2) } _ => { } } }', "Duplicate pattern"));
 });
+
+// ── FString ────────────────────────────────────────────────────────────────
+
+test('analyzer: fstring with no interpolations is valid', () => {
+  assert.ok(passes('fn f() { let s = f"hello world" }'));
+});
+
+test('analyzer: fstring with valid interpolation is valid', () => {
+  assert.ok(passes('fn f() { let x = 5 let s = f"x is {x}" }'));
+});
+
+test('analyzer: fstring infers type str', () => {
+  assert.ok(passes('fn f() { mut s = f"hi" s = "other" }'));
+});
+
+test('analyzer: fstring with undeclared variable is an error', () => {
+  assert.ok(hasError('fn f() { let s = f"val: {ghost}" }', 'Undeclared variable'));
+});
+
+test('analyzer: fstring with expression interpolation is valid', () => {
+  assert.ok(passes('fn f() { let x = 3 let s = f"result: {x + 1}" }'));
+});
+
+test('analyzer: empty fstring is valid', () => {
+  assert.ok(passes('fn f() { let s = f"" }'));
+});

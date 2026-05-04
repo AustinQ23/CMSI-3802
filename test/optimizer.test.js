@@ -400,3 +400,34 @@ test('optimizer: match with EnumVariant arm passes through when subject is non-l
   const result = optimize(node);
   assert.equal(result.type, 'Match');
 });
+
+// ── FString ────────────────────────────────────────────────────────────────
+
+test('optimizer: fstring text parts pass through unchanged', () => {
+  const node = { type: 'FString', parts: [{ type: 'FStringText', value: 'hello' }] };
+  const result = optimize(node);
+  assert.equal(result.parts[0].value, 'hello');
+});
+
+test('optimizer: fstring interp expressions are folded', () => {
+  const node = {
+    type: 'FString',
+    parts: [{ type: 'FStringInterp', expr: bin('+', lit(1), lit(2)) }],
+  };
+  const result = optimize(node);
+  assert.equal(result.parts[0].expr.type, 'Literal');
+  assert.equal(result.parts[0].expr.value, 3);
+});
+
+test('optimizer: fstring with mixed parts folds only interp', () => {
+  const node = {
+    type: 'FString',
+    parts: [
+      { type: 'FStringText', value: 'x=' },
+      { type: 'FStringInterp', expr: bin('*', lit(2), lit(3)) },
+    ],
+  };
+  const result = optimize(node);
+  assert.equal(result.parts[0].value, 'x=');
+  assert.equal(result.parts[1].expr.value, 6);
+});

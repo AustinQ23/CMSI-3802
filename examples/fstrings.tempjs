@@ -1,0 +1,33 @@
+fn greet(name) {
+  return f"Hello, {name}!"
+}
+
+fn describe_score(score) {
+  let grade = "unknown"
+  if score >= 90 {
+    let grade = "A"
+    print(f"Score: {score} — Grade: {grade}")
+  } else {
+    if score >= 80 {
+      let grade = "B"
+      print(f"Score: {score} — Grade: {grade}")
+    } else {
+      print(f"Score: {score} — Grade: {grade}")
+    }
+  }
+}
+
+fn main() {
+  let name = "Alice"
+  let msg = greet(name)
+  print(msg)
+
+  let x = 7
+  let y = 3
+  print(f"{x} + {y} = {x + y}")
+  print(f"{x} * {y} = {x * y}")
+
+  describe_score(95)
+  describe_score(82)
+  describe_score(70)
+}

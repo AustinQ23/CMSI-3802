@@ -136,6 +136,11 @@ semantics.addOperation('ast', {
 
   id(a, b) { return n('Identifier', { name: this.sourceString }); },
 
+  fstring(_open, _chars, _close) {
+    const raw = this.sourceString.slice(2, -1);
+    return n('FString', { parts: parseFStringParts(raw) });
+  },
+
   num(a, b, c) { return n('Literal', { value: Number(this.sourceString) }); },
   string(_open, _chars, _close) { return n('Literal', { value: this.sourceString.slice(1, -1) }); },
   true(_true) { return n('Literal', { value: true }); },
@@ -149,6 +154,27 @@ export function buildAST(src) {
   }
   const ast = semantics(match).ast();
   return { ast, errors: [] };
+}
+
+function parseFStringParts(raw) {
+  const parts = [];
+  let textStart = 0;
+  let i = 0;
+  while (i < raw.length) {
+    if (raw[i] === '{') {
+      if (i > textStart) parts.push({ type: 'FStringText', value: raw.slice(textStart, i) });
+      const end = raw.indexOf('}', i + 1);
+      const exprSrc = raw.slice(i + 1, end === -1 ? raw.length : end);
+      const { ast } = buildAST(exprSrc);
+      parts.push({ type: 'FStringInterp', expr: ast?.body[0] ?? null });
+      i = end === -1 ? raw.length : end + 1;
+      textStart = i;
+    } else {
+      i++;
+    }
+  }
+  if (textStart < raw.length) parts.push({ type: 'FStringText', value: raw.slice(textStart) });
+  return parts;
 }
 
 export default { buildAST };

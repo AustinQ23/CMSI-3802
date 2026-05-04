@@ -261,3 +261,26 @@ test('generator: enum variant match pattern emits correct comparison', () => {
   assert.ok(out.includes('__match === Color.Red'));
   assert.ok(out.includes('__match === Color.Green'));
 });
+
+// ── FString ────────────────────────────────────────────────────────────────
+
+test('generator: fstring with text only emits template literal', () => {
+  const out = gen('fn f() { let s = f"hello world" }');
+  assert.ok(out.includes('`hello world`'));
+});
+
+test('generator: fstring with interpolation emits template literal with ${...}', () => {
+  const out = gen('fn f() { let x = 5 let s = f"x is {x}" }');
+  assert.ok(out.includes('`x is ${x}`'));
+});
+
+test('generator: fstring with expression interpolation wraps in ${...}', () => {
+  const out = gen('fn f() { let x = 3 let s = f"result: {x + 1}" }');
+  assert.ok(out.includes('${'));
+  assert.ok(out.includes('result: '));
+});
+
+test('generator: empty fstring emits empty template literal', () => {
+  const out = gen('fn f() { let s = f"" }');
+  assert.ok(out.includes('``'));
+});
