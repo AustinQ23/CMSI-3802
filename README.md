@@ -51,7 +51,7 @@ Here are five complete programs covering every syntactic form in TEMP_JS. Try co
 
 ### 1. Enums and Pattern Matching
 
-This example demonstrates how to define **Enums** and use the **Match** statement to handle data variants. It showcases how TEMP_JS ensures exhaustiveness—meaning you must account for every possible enum variant or boolean state.
+This example demonstrates how to define **Enums** and use the **Match** statement to handle data variants. It showcases how TEMP_JS ensures exhaustiveness, meaning you must account for every possible enum variant or boolean state.
 
 ```
 enum Direction { North South East West }
