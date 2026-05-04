@@ -469,3 +469,94 @@ test('semantics: validate() with a string calls validateDeclarations', () => {
   assert.ok(Array.isArray(result));
   assert.ok(result.length > 0);
 });
+
+// ── MatchStmt ──────────────────────────────────────────────────────────────
+
+test('parser: match with literal arms produces Match node', () => {
+  const tree = ast('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }');
+  const stmt = tree.body[0].body[1];
+  assert.equal(stmt.type, 'Match');
+  assert.equal(stmt.arms.length, 2);
+});
+
+test('parser: match subject is correct expression', () => {
+  const tree = ast('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }');
+  const stmt = tree.body[0].body[1];
+  assert.equal(stmt.subject.type, 'Identifier');
+  assert.equal(stmt.subject.name, 'x');
+});
+
+test('parser: match literal arm has Literal pattern', () => {
+  const tree = ast('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }');
+  const arm = tree.body[0].body[1].arms[0];
+  assert.equal(arm.pattern.type, 'Literal');
+  assert.equal(arm.pattern.value, 1);
+});
+
+test('parser: match wildcard arm has WildCard pattern', () => {
+  const tree = ast('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }');
+  const arm = tree.body[0].body[1].arms[1];
+  assert.equal(arm.pattern.type, 'WildCard');
+});
+
+test('parser: match arm body contains statements', () => {
+  const tree = ast('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }');
+  const arm = tree.body[0].body[1].arms[0];
+  assert.equal(arm.body.length, 1);
+  assert.equal(arm.body[0].type, 'Print');
+});
+
+test('parser: match with bool patterns', () => {
+  const tree = ast('fn f() { let b = true match b { true => { print(1) } false => { print(0) } } }');
+  const stmt = tree.body[0].body[1];
+  assert.equal(stmt.arms[0].pattern.value, true);
+  assert.equal(stmt.arms[1].pattern.value, false);
+});
+
+test('parser: match with string pattern', () => {
+  const tree = ast('fn f() { let s = "hi" match s { "hi" => { print(1) } _ => { print(0) } } }');
+  const arm = tree.body[0].body[1].arms[0];
+  assert.equal(arm.pattern.type, 'Literal');
+  assert.equal(arm.pattern.value, 'hi');
+});
+
+test('parser: match keyword cannot be used as identifier', () => {
+  const { ast: tree, errors } = buildAST('fn f() { let match = 1 }');
+  assert.equal(tree, null);
+  assert.ok(errors.length > 0);
+});
+
+// ── EnumDecl ───────────────────────────────────────────────────────────────
+
+test('parser: enum declaration produces EnumDecl node', () => {
+  const tree = ast('enum Color { Red Green Blue }');
+  assert.equal(tree.body[0].type, 'EnumDecl');
+  assert.equal(tree.body[0].name, 'Color');
+});
+
+test('parser: enum variants are captured', () => {
+  const tree = ast('enum Color { Red Green Blue }');
+  assert.deepEqual(tree.body[0].variants, ['Red', 'Green', 'Blue']);
+});
+
+test('parser: enum member access produces MemberAccess node', () => {
+  const tree = ast('enum Color { Red } fn f() { let c = Color.Red }');
+  const expr = tree.body[1].body[0].init;
+  assert.equal(expr.type, 'MemberAccess');
+  assert.equal(expr.object, 'Color');
+  assert.equal(expr.member, 'Red');
+});
+
+test('parser: enum variant match pattern produces EnumVariant node', () => {
+  const tree = ast('enum Color { Red Green } fn f() { let c = Color.Red match c { Color.Red => { print(1) } Color.Green => { print(2) } } }');
+  const arm = tree.body[1].body[1].arms[0];
+  assert.equal(arm.pattern.type, 'EnumVariant');
+  assert.equal(arm.pattern.enum, 'Color');
+  assert.equal(arm.pattern.variant, 'Red');
+});
+
+test('parser: enum keyword cannot be used as identifier', () => {
+  const { ast: tree, errors } = buildAST('fn f() { let enum = 1 }');
+  assert.equal(tree, null);
+  assert.ok(errors.length > 0);
+});

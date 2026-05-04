@@ -304,3 +304,103 @@ test('analyzer: VarDecl with null init does not crash inferType', () => {
 test('analyzer: function with two returns of same type produces no inconsistency error', () => {
   assert.ok(passes('fn f() { if true { return 1 } else { return 1 } }'));
 });
+
+// ── Match statement ────────────────────────────────────────────────────────
+
+test('analyzer: match on num with wildcard is valid', () => {
+  assert.ok(passes('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }'));
+});
+
+test('analyzer: match on str with wildcard is valid', () => {
+  assert.ok(passes('fn f() { let s = "hi" match s { "hi" => { print(1) } _ => { print(0) } } }'));
+});
+
+test('analyzer: match on bool with both cases is valid', () => {
+  assert.ok(passes('fn f() { let b = true match b { true => { print(1) } false => { print(0) } } }'));
+});
+
+test('analyzer: match on bool with wildcard is valid', () => {
+  assert.ok(passes('fn f() { let b = true match b { true => { print(1) } _ => { print(0) } } }'));
+});
+
+test('analyzer: match on num without wildcard is an error', () => {
+  assert.ok(hasError('fn f() { let x = 1 match x { 1 => { print(1) } } }', 'Non-exhaustive match'));
+});
+
+test('analyzer: match on str without wildcard is an error', () => {
+  assert.ok(hasError('fn f() { let s = "hi" match s { "hi" => { print(1) } } }', 'Non-exhaustive match'));
+});
+
+test('analyzer: match on bool missing false case is an error', () => {
+  assert.ok(hasError('fn f() { let b = true match b { true => { print(1) } } }', 'Non-exhaustive match'));
+});
+
+test('analyzer: wildcard not last is an error', () => {
+  assert.ok(hasError('fn f() { let x = 1 match x { _ => { print(0) } 1 => { print(1) } } }', 'Wildcard arm must be the last'));
+});
+
+test('analyzer: duplicate patterns are an error', () => {
+  assert.ok(hasError('fn f() { let x = 1 match x { 1 => { print(1) } 1 => { print(2) } _ => { print(0) } } }', 'Duplicate pattern'));
+});
+
+test('analyzer: pattern type mismatch is an error', () => {
+  assert.ok(hasError('fn f() { let x = 1 match x { "hi" => { print(1) } _ => { print(0) } } }', "does not match subject type"));
+});
+
+test('analyzer: match arm body is scoped', () => {
+  assert.ok(hasError('fn f() { let x = 1 match x { 1 => { let inner = 2 } _ => { } } let y = inner }', 'Undeclared variable'));
+});
+
+test('analyzer: break inside match inside while is valid', () => {
+  assert.ok(passes('fn f() { let x = 1 while true { match x { 1 => { break } _ => { } } } }'));
+});
+
+test('analyzer: match with only wildcard arm is valid', () => {
+  assert.ok(passes('fn f() { let x = 1 match x { _ => { print(x) } } }'));
+});
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+test('analyzer: enum member access is valid', () => {
+  assert.ok(passes('enum Color { Red Green } fn f() { let c = Color.Red }'));
+});
+
+test('analyzer: enum member access infers enum type', () => {
+  assert.ok(passes('enum Dir { North South } fn f() { let d = Dir.North }'));
+});
+
+test('analyzer: access to undeclared enum is an error', () => {
+  assert.ok(hasError('fn f() { let c = Ghost.Red }', "Undeclared enum"));
+});
+
+test('analyzer: access to nonexistent variant is an error', () => {
+  assert.ok(hasError('enum Color { Red } fn f() { let c = Color.Blue }', "has no variant"));
+});
+
+test('analyzer: exhaustive enum match is valid', () => {
+  assert.ok(passes('enum Dir { North South East West } fn f() { let d = Dir.North match d { Dir.North => { print(1) } Dir.South => { print(2) } Dir.East => { print(3) } Dir.West => { print(4) } } }'));
+});
+
+test('analyzer: enum match with wildcard is valid', () => {
+  assert.ok(passes('enum Dir { North South } fn f() { let d = Dir.North match d { Dir.North => { print(1) } _ => { print(0) } } }'));
+});
+
+test('analyzer: non-exhaustive enum match is an error', () => {
+  assert.ok(hasError('enum Color { Red Green Blue } fn f() { let c = Color.Red match c { Color.Red => { print(1) } Color.Green => { print(2) } } }', "not covered"));
+});
+
+test('analyzer: enum variant from wrong enum in match is an error', () => {
+  assert.ok(hasError('enum A { X } enum B { Y } fn f() { let a = A.X match a { B.Y => { print(1) } _ => { } } }', "does not match subject type"));
+});
+
+test('analyzer: undeclared enum in match pattern is an error', () => {
+  assert.ok(hasError('enum A { X } fn f() { let a = A.X match a { Ghost.X => { print(1) } _ => { } } }', "Undeclared enum"));
+});
+
+test('analyzer: nonexistent variant in match pattern is an error', () => {
+  assert.ok(hasError('enum A { X } fn f() { let a = A.X match a { A.Z => { print(1) } _ => { } } }', "has no variant"));
+});
+
+test('analyzer: duplicate enum variant patterns are an error', () => {
+  assert.ok(hasError('enum A { X Y } fn f() { let a = A.X match a { A.X => { print(1) } A.X => { print(2) } _ => { } } }', "Duplicate pattern"));
+});

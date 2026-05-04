@@ -11,6 +11,9 @@ export function optimize(node) {
         body: node.body.map(optimize).filter(stmt => stmt !== null) // remove nulls from dead code
       };
 
+    case 'EnumDecl':
+      return node;
+
     case 'FunctionDecl':
       return {
         ...node,
@@ -91,6 +94,9 @@ export function optimize(node) {
     case 'Identifier':
       return node;
 
+    case 'MemberAccess':
+      return node;
+
     case 'Binary':
       const left = optimize(node.left);
       const right = optimize(node.right);
@@ -169,6 +175,24 @@ export function optimize(node) {
       const forIterable = optimize(node.iterable);
       const forBody = node.body.map(optimize).filter(s => s !== null);
       return { ...node, iterable: forIterable, body: forBody };
+    }
+
+    case 'Match': {
+      const matchSubject = optimize(node.subject);
+      const matchArms = node.arms.map(arm => ({
+        ...arm,
+        body: arm.body.map(optimize).filter(s => s !== null),
+      }));
+      if (matchSubject?.type === 'Literal') {
+        for (const arm of matchArms) {
+          if (arm.pattern.type === 'WildCard' || arm.pattern.value === matchSubject.value) {
+            const b = arm.body;
+            if (b.length === 0) return null;
+            return b.length === 1 ? b[0] : { type: 'Block', body: b };
+          }
+        }
+      }
+      return { ...node, subject: matchSubject, arms: matchArms };
     }
 
     case 'Call':

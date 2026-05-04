@@ -1,0 +1,41 @@
+// match example: day-of-week classifier
+
+fn day_name(n) {
+    match n {
+        1 => { return "Monday" }
+        2 => { return "Tuesday" }
+        3 => { return "Wednesday" }
+        4 => { return "Thursday" }
+        5 => { return "Friday" }
+        6 => { return "Saturday" }
+        7 => { return "Sunday" }
+        _ => { return "Unknown" }
+    }
+}
+
+fn is_weekend(n) {
+    match n {
+        6 => { return true }
+        7 => { return true }
+        _ => { return false }
+    }
+}
+
+fn day_type(weekend) {
+    match weekend {
+        true => { return "Weekend" }
+        false => { return "Weekday" }
+    }
+}
+
+fn main() {
+    mut day = 1
+    while day <= 7 {
+        let name = day_name(day)
+        let weekend = is_weekend(day)
+        let kind = day_type(weekend)
+        print(name)
+        print(kind)
+        day = day + 1
+    }
+}

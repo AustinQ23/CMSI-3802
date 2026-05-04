@@ -300,3 +300,103 @@ test('optimizer: Unary with unknown op and literal expr returns node unchanged',
   assert.equal(result.type, 'Unary');
   assert.equal(result.op, '~');
 });
+
+// ── Match ──────────────────────────────────────────────────────────────────
+
+const wildcard = { type: 'WildCard' };
+const arm = (pattern, ...stmts) => ({ pattern, body: stmts });
+
+test('optimizer: match with literal subject folds to matching arm (single stmt)', () => {
+  const node = {
+    type: 'Match',
+    subject: lit(1),
+    arms: [arm(lit(1), { type: 'Break' }), arm(wildcard, { type: 'Return', expr: null })],
+  };
+  const result = optimize(node);
+  assert.equal(result.type, 'Break');
+});
+
+test('optimizer: match with literal subject folds to wildcard when no arm matches', () => {
+  const node = {
+    type: 'Match',
+    subject: lit(99),
+    arms: [arm(lit(1), { type: 'Break' }), arm(wildcard, { type: 'Return', expr: null })],
+  };
+  const result = optimize(node);
+  assert.equal(result.type, 'Return');
+});
+
+test('optimizer: match with literal subject folds multi-stmt arm to Block', () => {
+  const node = {
+    type: 'Match',
+    subject: lit(1),
+    arms: [arm(lit(1), { type: 'Break' }, { type: 'Break' }), arm(wildcard, { type: 'Return', expr: null })],
+  };
+  const result = optimize(node);
+  assert.equal(result.type, 'Block');
+  assert.equal(result.body.length, 2);
+});
+
+test('optimizer: match with literal subject and empty matching arm returns null', () => {
+  const node = {
+    type: 'Match',
+    subject: lit(1),
+    arms: [arm(lit(1)), arm(wildcard, { type: 'Break' })],
+  };
+  const result = optimize(node);
+  assert.equal(result, null);
+});
+
+test('optimizer: match with non-literal subject passes through', () => {
+  const node = {
+    type: 'Match',
+    subject: id('x'),
+    arms: [arm(lit(1), { type: 'Break' }), arm(wildcard, { type: 'Return', expr: null })],
+  };
+  const result = optimize(node);
+  assert.equal(result.type, 'Match');
+});
+
+test('optimizer: match arm bodies have dead code removed', () => {
+  const node = {
+    type: 'Match',
+    subject: id('x'),
+    arms: [arm(lit(1), assign('y', id('y')), { type: 'Break' }), arm(wildcard, { type: 'Return', expr: null })],
+  };
+  const result = optimize(node);
+  assert.equal(result.arms[0].body.length, 1);
+  assert.equal(result.arms[0].body[0].type, 'Break');
+});
+
+test('optimizer: match folds subject expression', () => {
+  const node = {
+    type: 'Match',
+    subject: bin('+', lit(1), lit(1)),
+    arms: [arm(lit(2), { type: 'Break' }), arm(wildcard, { type: 'Return', expr: null })],
+  };
+  const result = optimize(node);
+  assert.equal(result.type, 'Break');
+});
+
+// ── EnumDecl / MemberAccess ────────────────────────────────────────────────
+
+test('optimizer: EnumDecl passes through unchanged', () => {
+  const node = { type: 'EnumDecl', name: 'Color', variants: ['Red', 'Green'] };
+  const result = optimize(node);
+  assert.equal(result.type, 'EnumDecl');
+  assert.deepEqual(result.variants, ['Red', 'Green']);
+});
+
+test('optimizer: MemberAccess passes through unchanged', () => {
+  const node = { type: 'MemberAccess', object: 'Color', member: 'Red' };
+  const result = optimize(node);
+  assert.equal(result.type, 'MemberAccess');
+  assert.equal(result.object, 'Color');
+});
+
+test('optimizer: match with EnumVariant arm passes through when subject is non-literal', () => {
+  const enumArm = { pattern: { type: 'EnumVariant', enum: 'Color', variant: 'Red' }, body: [{ type: 'Break' }] };
+  const node = { type: 'Match', subject: id('c'), arms: [enumArm, arm(wildcard, { type: 'Return', expr: null })] };
+  const result = optimize(node);
+  assert.equal(result.type, 'Match');
+});

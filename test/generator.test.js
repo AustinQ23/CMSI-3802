@@ -202,3 +202,62 @@ test('generator: generateJS throws on null AST', () => {
 test('generator: generateJS throws on non-Program AST', () => {
   assert.throws(() => generateJS({ type: 'FunctionDecl' }), /Invalid AST for codegen/);
 });
+
+// ── Match statement ────────────────────────────────────────────────────────
+
+test('generator: match emits if/else chain', () => {
+  const out = gen('fn f() { let x = 1 match x { 1 => { print(1) } _ => { print(0) } } }');
+  assert.ok(out.includes('const __match ='));
+  assert.ok(out.includes('if (__match === 1)'));
+  assert.ok(out.includes('else {'));
+});
+
+test('generator: match with multiple literal arms emits else if', () => {
+  const out = gen('fn f() { let x = 1 match x { 1 => { print(1) } 2 => { print(2) } _ => { print(0) } } }');
+  assert.ok(out.includes('if (__match === 1)'));
+  assert.ok(out.includes('else if (__match === 2)'));
+  assert.ok(out.includes('else {'));
+});
+
+test('generator: match wildcard-only arm emits plain block', () => {
+  const out = gen('fn f() { let x = 1 match x { _ => { print(x) } } }');
+  assert.ok(out.includes('const __match ='));
+  assert.ok(!out.includes('if'));
+});
+
+test('generator: match with bool patterns emits correct literals', () => {
+  const out = gen('fn f() { let b = true match b { true => { print(1) } false => { print(0) } } }');
+  assert.ok(out.includes('__match === true'));
+  assert.ok(out.includes('__match === false'));
+});
+
+test('generator: match arm body statements are emitted', () => {
+  const out = gen('fn f() { let x = 1 match x { 1 => { print(99) } _ => { print(0) } } }');
+  assert.ok(out.includes('console.log(99)'));
+});
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+test('generator: enum declaration emits Object.freeze', () => {
+  const out = gen('enum Color { Red Green Blue }');
+  assert.ok(out.includes('Object.freeze'));
+  assert.ok(out.includes('Red: "Red"'));
+  assert.ok(out.includes('Green: "Green"'));
+  assert.ok(out.includes('Blue: "Blue"'));
+});
+
+test('generator: enum declaration uses const', () => {
+  const out = gen('enum Dir { North South }');
+  assert.ok(out.includes('const Dir ='));
+});
+
+test('generator: member access emits dot notation', () => {
+  const out = gen('enum Color { Red } fn f() { let c = Color.Red }');
+  assert.ok(out.includes('Color.Red'));
+});
+
+test('generator: enum variant match pattern emits correct comparison', () => {
+  const out = gen('enum Color { Red Green } fn f() { let c = Color.Red match c { Color.Red => { print(1) } Color.Green => { print(2) } } }');
+  assert.ok(out.includes('__match === Color.Red'));
+  assert.ok(out.includes('__match === Color.Green'));
+});

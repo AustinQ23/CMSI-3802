@@ -1,6 +1,6 @@
 TEMP_JS {
   Program     = Decl+
-  Decl        = FuncDecl | VarDecl | Statement
+  Decl        = FuncDecl | EnumDecl | VarDecl | Statement
 
   FuncDecl    = "fn" id "(" ListOf<Param, ","> ")" "{" Statement* "}"
   Param       = id
@@ -12,6 +12,7 @@ TEMP_JS {
               | IfStmt
               | WhileStmt
               | ForStmt
+              | MatchStmt
               | ReturnStmt
               | BreakStmt
               | ExpStmt
@@ -24,6 +25,12 @@ TEMP_JS {
               | "if" Exp "{" Statement* "}" -- short
   WhileStmt   = "while" Exp "{" Statement* "}"
   ForStmt     = "for" id "in" Exp "{" Statement* "}"
+  EnumDecl    = "enum" id "{" id+ "}"
+  MatchStmt   = "match" Exp "{" MatchArm+ "}"
+  MatchArm    = MatchPattern "=>" "{" Statement* "}"
+  MatchPattern = "_"       -- wildcard
+               | id "." id -- variant
+               | literal   -- lit
   ReturnStmt  = "return" Exp?
   BreakStmt   = "break"
   ExpStmt     = Exp
@@ -46,6 +53,7 @@ TEMP_JS {
               | "[" ListOf<Exp, ","> "]"     -- array
               | literal
               | id "(" ListOf<Exp, ","> ")"  -- call
+              | id "." id                    -- member
               | id                           -- id
               | "(" Exp ")"                  -- parens
 
@@ -55,7 +63,7 @@ TEMP_JS {
   prefixop    = "-" | "!"
 
   id          = ~keyword letter (alnum | "_")*
-  keyword     = ("fn" | "let" | "mut" | "if" | "else" | "while" | "for" | "in" | "return" | "break" | "print" | "true" | "false") ~(alnum | "_")
+  keyword     = ("fn" | "let" | "mut" | "if" | "else" | "while" | "for" | "in" | "return" | "break" | "print" | "true" | "false" | "match" | "enum") ~(alnum | "_")
   literal     = num | string | true | false
   num         = digit+ ("." digit+)?
   string      = "\"" (~"\"" any)* "\""

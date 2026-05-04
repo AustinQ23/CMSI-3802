@@ -15,9 +15,12 @@ export function analyze(ast) {
   // First pass: register all function names and param counts so forward calls work.
   // Return types start as UNKNOWN and get filled in when a return statement is analyzed.
   const funcSigs = Object.create(null);
+  const enumRegistry = Object.create(null);
   for (const node of ast.body) {
     if (node.type === 'FunctionDecl') {
       funcSigs[node.name] = { paramCount: node.params.length, returnType: UNKNOWN };
+    } else if (node.type === 'EnumDecl') {
+      enumRegistry[node.name] = new Set(node.variants);
     }
   }
 
@@ -100,6 +103,19 @@ export function analyze(ast) {
           report(`Array index must be 'num', got '${idxType}'`, expr);
         }
         return UNKNOWN;
+      }
+
+      case 'MemberAccess': {
+        const enumDef = enumRegistry[expr.object];
+        if (!enumDef) {
+          report(`Undeclared enum '${expr.object}'`, expr);
+          return null;
+        }
+        if (!enumDef.has(expr.member)) {
+          report(`Enum '${expr.object}' has no variant '${expr.member}'`, expr);
+          return null;
+        }
+        return expr.object;
       }
 
       case 'Call': {
@@ -199,6 +215,72 @@ export function analyze(ast) {
           break;
         }
 
+        case 'Match': {
+          const subjectType = inferType(s.subject, env);
+          const wildcardIdx = s.arms.findIndex(a => a.pattern.type === 'WildCard');
+          if (wildcardIdx !== -1 && wildcardIdx !== s.arms.length - 1) {
+            report(`Wildcard arm must be the last arm in a match expression`, s);
+          }
+          const seen = new Set();
+          for (const arm of s.arms) {
+            if (arm.pattern.type !== 'WildCard') {
+              const key = arm.pattern.type === 'EnumVariant'
+                ? `${arm.pattern.enum}.${arm.pattern.variant}`
+                : JSON.stringify(arm.pattern.value);
+              if (seen.has(key)) {
+                report(`Duplicate pattern '${key}' in match expression`, s);
+              }
+              seen.add(key);
+            }
+          }
+          if (subjectType && subjectType !== UNKNOWN) {
+            for (const arm of s.arms) {
+              if (arm.pattern.type === 'Literal') {
+                const patType = typeof arm.pattern.value === 'number' ? 'num'
+                              : typeof arm.pattern.value === 'string' ? 'str'
+                              : 'bool';
+                if (patType !== subjectType) {
+                  report(`Pattern type '${patType}' does not match subject type '${subjectType}'`, s);
+                }
+              } else if (arm.pattern.type === 'EnumVariant') {
+                const enumDef = enumRegistry[arm.pattern.enum];
+                if (!enumDef) {
+                  report(`Undeclared enum '${arm.pattern.enum}'`, s);
+                } else if (!enumDef.has(arm.pattern.variant)) {
+                  report(`Enum '${arm.pattern.enum}' has no variant '${arm.pattern.variant}'`, s);
+                } else if (arm.pattern.enum !== subjectType) {
+                  report(`Pattern type '${arm.pattern.enum}' does not match subject type '${subjectType}'`, s);
+                }
+              }
+            }
+            const hasWildcard = wildcardIdx !== -1;
+            if (!hasWildcard) {
+              if (subjectType === 'bool') {
+                const hasTrue = s.arms.some(a => a.pattern.type === 'Literal' && a.pattern.value === true);
+                const hasFalse = s.arms.some(a => a.pattern.type === 'Literal' && a.pattern.value === false);
+                if (!hasTrue || !hasFalse) {
+                  report(`Non-exhaustive match on 'bool': must cover both true and false or include a wildcard`, s);
+                }
+              } else if (subjectType === 'num' || subjectType === 'str') {
+                report(`Non-exhaustive match on '${subjectType}': must include a wildcard arm`, s);
+              } else if (enumRegistry[subjectType]) {
+                const covered = new Set(
+                  s.arms.filter(a => a.pattern.type === 'EnumVariant').map(a => a.pattern.variant)
+                );
+                for (const v of enumRegistry[subjectType]) {
+                  if (!covered.has(v)) {
+                    report(`Non-exhaustive match on '${subjectType}': variant '${v}' not covered`, s);
+                  }
+                }
+              }
+            }
+          }
+          for (const arm of s.arms) {
+            walkStmts(arm.body, Object.create(env), inLoop, currentFunc);
+          }
+          break;
+        }
+
         case 'For': {
           const iterType = inferType(s.iterable, env);
           if (iterType && iterType !== UNKNOWN && iterType !== 'array') {
@@ -227,13 +309,13 @@ export function analyze(ast) {
   for (const top of ast.body) {
     if (top.type === 'FunctionDecl') {
       const funcEnv = Object.create(globalEnv);
-      // Parameters have unknown types until call-site inference is added.
       for (const p of top.params || []) {
         funcEnv[p.name] = { kind: 'let', type: UNKNOWN };
       }
       walkStmts(top.body || [], funcEnv, false, { name: top.name });
+    } else if (top.type === 'EnumDecl') {
+      // already registered in first pass
     } else {
-      // Top-level statements share the global scope.
       walkStmts([top], globalEnv, false, null);
     }
   }

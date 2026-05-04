@@ -15,6 +15,10 @@ semantics.addOperation('ast', {
 
   Decl(d) { return d.ast(); },
 
+  EnumDecl(_enum, name, _open, variants, _close) {
+    return n('EnumDecl', { name: name.ast().name, variants: variants.children.map(v => v.ast().name) });
+  },
+
   FuncDecl(_fn, name, _open, params, _close, _openb, stmts, _closeb) {
     const pname = name.ast().name;
     const paramsArr = params.asIteration().children.map(c => c.ast());
@@ -61,6 +65,26 @@ semantics.addOperation('ast', {
     return n('For', { variable: id.ast().name, iterable: iterable.ast(), body: stmts.children.map(s => s.ast()) });
   },
 
+  MatchStmt(_match, subject, _open, arms, _close) {
+    return n('Match', { subject: subject.ast(), arms: arms.children.map(a => a.ast()) });
+  },
+
+  MatchArm(pattern, _arrow, _open, stmts, _close) {
+    return { pattern: pattern.ast(), body: stmts.children.map(s => s.ast()) };
+  },
+
+  MatchPattern_wildcard(_) {
+    return n('WildCard', {});
+  },
+
+  MatchPattern_variant(enumId, _dot, variantId) {
+    return n('EnumVariant', { enum: enumId.ast().name, variant: variantId.ast().name });
+  },
+
+  MatchPattern_lit(lit) {
+    return lit.ast();
+  },
+
   IndexAssign(id, _open, index, _close, _eq, value) {
     return n('IndexAssign', { target: id.ast().name, index: index.ast(), value: value.ast() });
   },
@@ -98,6 +122,9 @@ semantics.addOperation('ast', {
   Exp7_call(id, _open, args, _close) {
     const argList = args.asIteration().children.map(c => c.ast());
     return n('Call', { callee: id.ast().name, args: argList });
+  },
+  Exp7_member(obj, _dot, member) {
+    return n('MemberAccess', { object: obj.ast().name, member: member.ast().name });
   },
   Exp7_id(id) { return id.ast(); },
   Exp7_parens(_open, expr, _close) { return expr.ast(); },

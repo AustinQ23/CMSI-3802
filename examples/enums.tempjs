@@ -1,0 +1,38 @@
+enum Direction { North South East West }
+
+enum Season { Spring Summer Fall Winter }
+
+fn describe_direction(d) {
+    match d {
+        Direction.North => { return "Heading north" }
+        Direction.South => { return "Heading south" }
+        Direction.East  => { return "Heading east" }
+        Direction.West  => { return "Heading west" }
+    }
+}
+
+fn is_warm(s) {
+    match s {
+        Season.Spring => { return true }
+        Season.Summer => { return true }
+        Season.Fall   => { return false }
+        Season.Winter => { return false }
+    }
+}
+
+fn main() {
+    let d = Direction.North
+    print(describe_direction(d))
+
+    let dirs = [Direction.North, Direction.South, Direction.East, Direction.West]
+    for dir in dirs {
+        print(describe_direction(dir))
+    }
+
+    let s = Season.Summer
+    let warm = is_warm(s)
+    match warm {
+        true  => { print("Warm season") }
+        false => { print("Cold season") }
+    }
+}
