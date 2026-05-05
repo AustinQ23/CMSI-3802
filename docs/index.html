@@ -17,7 +17,7 @@
         <section id="story">
             <h2>The Story of TEMP_JS</h2>
             <p>TEMP_JS was born out of a desire to help developers focus purely on logic in programming and worry less about 
-                superficial rules. It is a statically-typed, transpiled language that embraces simplicity—using intelligent type 
+                superficial rules. It is a statically-typed, transpiled language that embraces simplicity using intelligent type 
                 inference to give you the safety of a compiled language with the lightweight feel of a scripting language, combining 
                 aspects of famous languages like Python, Rust, JavaScript, and more.</p>
             <p>The core philosophy behind TEMP_JS is safety through minimalism. We ditched semicolons and made variables
@@ -356,68 +356,47 @@ fn main() {
 }</textarea>
     <button class="btn run-btn" onclick="runCode('code5', 'out5')">Run Code</button>
     <pre id="out5" class="output hidden"></pre>
-    <h3>6. Nested Conditionals and Array Iteration</h3>
+    <h3>6. Structs and Field Access</h3>
     <p>This example introduces <code>structs</code>, TEMP_JS's named record type. It shows how to declare a <code>structs
     </code>, create both immutable and mutable instances, read fields with dot notation, mutate fields on <code>mut</code> 
     variables, pass structs into functions, and store them in arrays.</p>
     <textarea id="code6" class="code-editor" spellcheck="false" rows="35">
-fn length(arr) {
-  mut count = 0
-  for x in arr {
-    count = count + 1
-  }
-  return count
-}
+    struct Point { x y }
 
-fn grade(score) {
-  if score >= 90 {
-    return "A"
-  } else {
-    if score >= 80 {
-      return "B"
-    } else {
-      if score >= 70 {
-        return "C"
-      } else {
-        if score >= 60 {
-          return "D"
-        } else {
-          return "F"
-        }
-      }
-    }
-  }
-}
+    struct Rectangle { width height }
 
-fn categorize(items) {
-  let n = length(items)
-  if n == 0 {
-    return "empty"
-  } else {
-    if n <= 3 {
-      return "small"
-    } else {
-      if n <= 10 {
-        return "medium"
-      } else {
-        return "large"
-      }
+    fn area(r) {
+        return r.width * r.height
     }
-  }
-}
+
+    fn perimeter(r) {
+        return 2 * r.width + 2 * r.height
+    }
+
+    fn distance_sq(p) {
+        return p.x * p.x + p.y * p.y
+    }
 
 fn main() {
-  let scores = [95, 82, 71, 63, 45]
-  for s in scores {
-    print(grade(s))
-  }
+    let p = Point { x: 3, y: 4 }
+    print(f"Point: ({p.x}, {p.y})")
+    print(f"Distance squared from origin: {distance_sq(p)}")
 
-  let a = []
-  let b = [1, 2]
-  let c = [1, 2, 3, 4, 5, 6, 7]
-  print(categorize(a))
-  print(categorize(b))
-  print(categorize(c))
+    mut q = Point { x: 0, y: 0 }
+    q.x = 6
+    q.y = 8
+    print(f"Moved point: ({q.x}, {q.y})")
+    print(f"Distance squared from origin: {distance_sq(q)}")
+
+    let r = Rectangle { width: 5, height: 3 }
+    print(f"Rectangle: {r.width}x{r.height}")
+    print(f"Area: {area(r)}")
+    print(f"Perimeter: {perimeter(r)}")
+
+    let points = [Point { x: 1, y: 2 }, Point { x: 3, y: 4 }, Point { x: 5, y: 6 }]
+    for pt in points {
+        print(f"({pt.x}, {pt.y})")
+    }
 }</textarea>
     <button class="btn run-btn" onclick="runCode('code6', 'out6')">Run Code</button>
     <pre id="out6" class="output hidden"></pre>
