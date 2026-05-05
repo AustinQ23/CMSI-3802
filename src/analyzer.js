@@ -22,11 +22,27 @@ export function analyze(ast) {
   // Return types start as UNKNOWN and get filled in when a return statement is analyzed.
   const funcSigs = Object.create(null);
   const enumRegistry = Object.create(null);
+  const structRegistry = Object.create(null);
+  const interfaceRegistry = Object.create(null); // name -> Map<methodName, paramCount>
+  const implRegistry = Object.create(null);       // structName -> { interfaceName, methods: Map<name, paramCount> }
   for (const node of ast.body) {
     if (node.type === 'FunctionDecl') {
       funcSigs[node.name] = { paramCount: node.params.length, returnType: UNKNOWN };
     } else if (node.type === 'EnumDecl') {
       enumRegistry[node.name] = new Set(node.variants);
+    } else if (node.type === 'StructDecl') {
+      structRegistry[node.name] = new Set(node.fields);
+    } else if (node.type === 'InterfaceDecl') {
+      const methods = new Map();
+      for (const m of node.methods) methods.set(m.name, m.paramCount);
+      interfaceRegistry[node.name] = methods;
+    } else if (node.type === 'ImplDecl') {
+      const methods = new Map();
+      for (const m of node.methods) {
+        methods.set(m.name, m.params.length);
+        funcSigs[`${node.structName}$$${m.name}`] = { paramCount: m.params.length, returnType: UNKNOWN };
+      }
+      implRegistry[node.structName] = { interfaceName: node.interfaceName, methods };
     }
   }
 
@@ -120,15 +136,75 @@ export function analyze(ast) {
 
       case 'MemberAccess': {
         const enumDef = enumRegistry[expr.object];
-        if (!enumDef) {
-          report(`Undeclared enum '${expr.object}'`, expr);
+        if (enumDef) {
+          if (!enumDef.has(expr.member)) {
+            report(`Enum '${expr.object}' has no variant '${expr.member}'`, expr);
+            return null;
+          }
+          return expr.object;
+        }
+        const varInfo = env[expr.object];
+        if (!varInfo) {
+          report(`Undeclared variable or enum '${expr.object}'`, expr);
           return null;
         }
-        if (!enumDef.has(expr.member)) {
-          report(`Enum '${expr.object}' has no variant '${expr.member}'`, expr);
+        if (varInfo.type === UNKNOWN) return UNKNOWN;
+        const structDef = structRegistry[varInfo.type];
+        if (!structDef) {
+          report(`Cannot access field '${expr.member}' on non-struct type '${varInfo.type}'`, expr);
           return null;
         }
-        return expr.object;
+        if (!structDef.has(expr.member)) {
+          report(`Struct '${varInfo.type}' has no field '${expr.member}'`, expr);
+          return null;
+        }
+        return UNKNOWN;
+      }
+
+      case 'StructLiteral': {
+        const structDef = structRegistry[expr.name];
+        if (!structDef) {
+          report(`Undeclared struct '${expr.name}'`, expr);
+          return null;
+        }
+        const provided = new Set(expr.fields.map(f => f.name));
+        for (const field of structDef) {
+          if (!provided.has(field)) {
+            report(`Missing field '${field}' in struct literal '${expr.name}'`, expr);
+          }
+        }
+        for (const f of expr.fields) {
+          if (!structDef.has(f.name)) {
+            report(`Unknown field '${f.name}' in struct '${expr.name}'`, expr);
+          }
+          inferType(f.value, env);
+        }
+        return expr.name;
+      }
+
+      case 'MethodCall': {
+        const varInfo = env[expr.object];
+        if (!varInfo) {
+          report(`Undeclared variable '${expr.object}'`, expr);
+          return null;
+        }
+        if (varInfo.type !== UNKNOWN) {
+          const impl = implRegistry[varInfo.type];
+          if (!impl) {
+            report(`Type '${varInfo.type}' has no impl`, expr);
+            return null;
+          }
+          if (!impl.methods.has(expr.method)) {
+            report(`'${varInfo.type}' has no method '${expr.method}'`, expr);
+            return null;
+          }
+          const expectedArgs = impl.methods.get(expr.method);
+          if (expr.args.length !== expectedArgs) {
+            report(`'${expr.method}' expects ${expectedArgs} argument(s), got ${expr.args.length}`, expr);
+          }
+        }
+        for (const arg of expr.args) inferType(arg, env);
+        return UNKNOWN;
       }
 
       case 'Call': {
@@ -262,6 +338,24 @@ export function analyze(ast) {
           break;
         }
 
+        case 'FieldAssign': {
+          const info = env[s.object];
+          if (!info) {
+            report(`Assignment to undeclared variable '${s.object}'`, s);
+          } else if (info.kind === 'let') {
+            report(`Cannot modify field of immutable variable '${s.object}' (declared with 'let')`, s);
+          } else if (info.type !== UNKNOWN) {
+            const structDef = structRegistry[info.type];
+            if (!structDef) {
+              report(`'${s.object}' is not a struct`, s);
+            } else if (!structDef.has(s.field)) {
+              report(`Struct '${info.type}' has no field '${s.field}'`, s);
+            }
+          }
+          inferType(s.value, env);
+          break;
+        }
+
         case 'IndexAssign': {
           const info = env[s.target];
           if (!info) {
@@ -374,8 +468,33 @@ export function analyze(ast) {
         funcEnv[p.name] = { kind: 'let', type: UNKNOWN };
       }
       walkStmts(top.body || [], funcEnv, false, { name: top.name });
-    } else if (top.type === 'EnumDecl') {
+    } else if (top.type === 'EnumDecl' || top.type === 'StructDecl' || top.type === 'InterfaceDecl') {
       // already registered in first pass
+    } else if (top.type === 'ImplDecl') {
+      if (!structRegistry[top.structName]) {
+        report(`'impl' references undeclared struct '${top.structName}'`, top);
+      }
+      const iface = interfaceRegistry[top.interfaceName];
+      if (!iface) {
+        report(`'impl' references undeclared interface '${top.interfaceName}'`, top);
+      } else {
+        for (const [methodName, paramCount] of iface) {
+          const implMethod = top.methods.find(m => m.name === methodName);
+          if (!implMethod) {
+            report(`'${top.structName}' is missing method '${methodName}' required by '${top.interfaceName}'`, top);
+          } else if (implMethod.params.length !== paramCount) {
+            report(`Method '${methodName}' requires ${paramCount} param(s) but implementation has ${implMethod.params.length}`, top);
+          }
+        }
+      }
+      for (const method of top.methods) {
+        const funcEnv = Object.create(globalEnv);
+        funcEnv['self'] = { kind: 'let', type: top.structName };
+        for (const p of method.params || []) {
+          funcEnv[p.name] = { kind: 'let', type: UNKNOWN };
+        }
+        walkStmts(method.body || [], funcEnv, false, { name: `${top.structName}$$${method.name}` });
+      }
     } else {
       walkStmts([top], globalEnv, false, null);
     }

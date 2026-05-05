@@ -2,7 +2,7 @@
 export const grammarText = String.raw`
 TEMP_JS {
   Program     = Decl+
-  Decl        = FuncDecl | EnumDecl | VarDecl | Statement
+  Decl        = FuncDecl | EnumDecl | StructDecl | InterfaceDecl | ImplDecl | VarDecl | Statement
 
   FuncDecl    = "fn" id "(" ListOf<Param, ","> ")" "{" Statement* "}"
   Param       = id
@@ -11,6 +11,7 @@ TEMP_JS {
               | IndexAssign
               | CompoundAssign
               | IncrDecr
+              | FieldAssign
               | Assign
               | Print
               | IfStmt
@@ -25,6 +26,7 @@ TEMP_JS {
   IndexAssign    = id "[" Exp "]" "=" Exp
   CompoundAssign = id ("+=" | "-=") Exp
   IncrDecr       = id ("++" | "--")
+  FieldAssign    = id "." id "=" Exp
   Assign         = id "=" Exp
   Print       = "print" "(" Exp ")"
   IfStmt      = "if" Exp "{" Statement* "}" "else" "{" Statement* "}" -- long
@@ -33,6 +35,10 @@ TEMP_JS {
   WhileStmt   = "while" Exp "{" Statement* "}"
   ForStmt     = "for" id "in" Exp "{" Statement* "}"
   EnumDecl    = "enum" id "{" id+ "}"
+  StructDecl    = "struct" id "{" id+ "}"
+  InterfaceDecl = "interface" id "{" MethodSig* "}"
+  MethodSig     = "fn" id "(" ListOf<Param, ","> ")"
+  ImplDecl      = "impl" id "for" id "{" FuncDecl* "}"
   MatchStmt   = "match" Exp "{" MatchArm+ "}"
   MatchArm    = MatchPattern "=>" "{" Statement* "}"
   MatchPattern = "_"       -- wildcard
@@ -60,9 +66,13 @@ TEMP_JS {
               | "[" ListOf<Exp, ","> "]"     -- array
               | literal
               | id "(" ListOf<Exp, ","> ")"  -- call
+              | id "." id "(" ListOf<Exp, ","> ")"  -- methodcall
               | id "." id                    -- member
+              | id "{" NonemptyListOf<FieldInit, ","> "}" -- structlit
               | id                           -- id
               | "(" Exp ")"                  -- parens
+
+  FieldInit   = id ":" Exp
 
   relop       = "<=" | ">=" | "==" | "!=" | "<" | ">"
   addop       = "+" | "-"
@@ -70,7 +80,7 @@ TEMP_JS {
   prefixop    = "-" | "!"
 
   id          = ~keyword letter (alnum | "_")*
-  keyword     = ("fn" | "let" | "mut" | "if" | "else" | "while" | "for" | "in" | "return" | "break" | "print" | "true" | "false" | "match" | "enum") ~(alnum | "_")
+  keyword     = ("fn" | "let" | "mut" | "struct" | "interface" | "impl" | "if" | "else" | "while" | "for" | "in" | "return" | "break" | "print" | "true" | "false" | "match" | "enum") ~(alnum | "_")
   literal     = num | fstring | string | true | false
   num         = digit+ ("." digit+)?
   fstring     = "f\"" (~"\"" any)* "\""
@@ -78,6 +88,6 @@ TEMP_JS {
   true        = "true"
   false       = "false"
 
-  space      += "#" (~"\n" any)* "\n"?  -- comment
+  space      += "#" (~"\n" any)* "\n"?  -- comments
 }
 `;

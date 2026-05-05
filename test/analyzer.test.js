@@ -370,7 +370,7 @@ test('analyzer: enum member access infers enum type', () => {
 });
 
 test('analyzer: access to undeclared enum is an error', () => {
-  assert.ok(hasError('fn f() { let c = Ghost.Red }', "Undeclared enum"));
+  assert.ok(hasError('fn f() { let c = Ghost.Red }', "Undeclared variable or enum"));
 });
 
 test('analyzer: access to nonexistent variant is an error', () => {
@@ -525,4 +525,138 @@ test('analyzer: len with no args is an error', () => {
 
 test('analyzer: len with two args is an error', () => {
   assert.ok(hasError('fn f() { let n = len([1], [2]) }', 'expects 1'));
+});
+
+// IncrDecr
+
+test('analyzer: ++ on a mut num is valid', () => {
+  assert.ok(passes('fn f() { mut x = 1 x++ }'));
+});
+
+test('analyzer: ++ on a let variable is an error', () => {
+  assert.ok(hasError('fn f() { let x = 1 x++ }', 'immutable'));
+});
+
+test('analyzer: ++ on undeclared variable is an error', () => {
+  assert.ok(hasError('fn f() { ghost++ }', 'undeclared'));
+});
+
+test('analyzer: ++ on a non-num variable is an error', () => {
+  assert.ok(hasError('fn f() { mut s = "hi" s++ }', 'requires a num variable'));
+});
+
+// CompoundAssign
+
+test('analyzer: += on a mut num is valid', () => {
+  assert.ok(passes('fn f() { mut x = 1 x += 2 }'));
+});
+
+test('analyzer: += on a let variable is an error', () => {
+  assert.ok(hasError('fn f() { let x = 1 x += 2 }', 'immutable'));
+});
+
+test('analyzer: += on undeclared variable is an error', () => {
+  assert.ok(hasError('fn f() { ghost += 1 }', 'undeclared'));
+});
+
+test('analyzer: -= with non-num operands is an error', () => {
+  assert.ok(hasError('fn f() { mut s = "hi" s -= 1 }', "'-=' requires num"));
+});
+
+test('analyzer: += with mixed types is an error', () => {
+  assert.ok(hasError('fn f() { mut x = 1 x += "hi" }', "Cannot use '+='"));
+});
+
+test('analyzer: += on bool variables is an error', () => {
+  assert.ok(hasError('fn f() { mut b = true b += false }', "'+=' requires num or str"));
+});
+
+// Structs
+
+test('analyzer: struct literal with all fields is valid', () => {
+  assert.ok(passes('struct Point { x y } fn f() { let p = Point { x: 3, y: 4 } }'));
+});
+
+test('analyzer: struct literal with missing field is an error', () => {
+  assert.ok(hasError('struct Point { x y } fn f() { let p = Point { x: 3 } }', 'Missing field'));
+});
+
+test('analyzer: struct literal with unknown field is an error', () => {
+  assert.ok(hasError('struct Point { x y } fn f() { let p = Point { x: 3, y: 4, z: 5 } }', 'Unknown field'));
+});
+
+test('analyzer: struct literal for undeclared struct is an error', () => {
+  assert.ok(hasError('fn f() { let p = Ghost { x: 1 } }', 'Undeclared struct'));
+});
+
+test('analyzer: field access on a struct variable is valid', () => {
+  assert.ok(passes('struct Point { x y } fn f() { let p = Point { x: 3, y: 4 } print(p.x) }'));
+});
+
+test('analyzer: field access on a non-struct type is an error', () => {
+  assert.ok(hasError('fn f() { let n = 5 let x = n.something }', 'non-struct type'));
+});
+
+test('analyzer: field access on an unknown struct field is an error', () => {
+  assert.ok(hasError('struct Point { x y } fn f() { let p = Point { x: 3, y: 4 } let z = p.z }', 'has no field'));
+});
+
+// FieldAssign
+
+test('analyzer: field assignment on a mut struct is valid', () => {
+  assert.ok(passes('struct Point { x y } fn f() { mut p = Point { x: 0, y: 0 } p.x = 5 }'));
+});
+
+test('analyzer: field assignment on a let struct is an error', () => {
+  assert.ok(hasError('struct Point { x y } fn f() { let p = Point { x: 0, y: 0 } p.x = 5 }', 'immutable'));
+});
+
+test('analyzer: field assignment to undeclared variable is an error', () => {
+  assert.ok(hasError('fn f() { ghost.x = 5 }', 'undeclared'));
+});
+
+test('analyzer: field assignment to unknown field is an error', () => {
+  assert.ok(hasError('struct Point { x y } fn f() { mut p = Point { x: 0, y: 0 } p.z = 5 }', 'has no field'));
+});
+
+test('analyzer: field assignment on non-struct type is an error', () => {
+  assert.ok(hasError('fn f() { mut n = 5 n.x = 1 }', 'not a struct'));
+});
+
+// MethodCall
+
+test('analyzer: method call on valid impl is valid', () => {
+  assert.ok(passes('struct Circle { radius } interface Describable { fn describe() } impl Circle for Describable { fn describe() { return f"Circle with radius {self.radius}" } } fn f() { let c = Circle { radius: 5 } let s = c.describe() }'));
+});
+
+test('analyzer: method call on type with no impl is an error', () => {
+  assert.ok(hasError('struct Point { x y } fn f() { let p = Point { x: 1, y: 2 } let s = p.describe() }', 'has no impl'));
+});
+
+test('analyzer: method call with wrong arg count is an error', () => {
+  assert.ok(hasError('struct Circle { radius } interface Greet { fn greet(name) } impl Circle for Greet { fn greet(name) { return f"hi {name}" } } fn f() { let c = Circle { radius: 5 } let s = c.greet() }', 'expects 1'));
+});
+
+// ImplDecl validation
+
+test('analyzer: impl for undeclared struct is an error', () => {
+  assert.ok(hasError('interface Describable { fn describe() } impl Ghost for Describable { fn describe() { return "hi" } }', 'undeclared struct'));
+});
+
+test('analyzer: impl for undeclared interface is an error', () => {
+  assert.ok(hasError('struct Point { x y } impl Point for GhostIface { fn describe() { return "hi" } }', 'undeclared interface'));
+});
+
+test('analyzer: impl missing required method is an error', () => {
+  assert.ok(hasError('struct Circle { radius } interface Describable { fn describe() } impl Circle for Describable { }', 'missing method'));
+});
+
+test('analyzer: impl method with wrong param count is an error', () => {
+  assert.ok(hasError('struct Circle { radius } interface Greet { fn greet(name) } impl Circle for Greet { fn greet() { return "hi" } }', 'requires 1 param'));
+});
+
+// IndexAssign on non-array type
+
+test('analyzer: index-assigning to a mut non-array is an error', () => {
+  assert.ok(hasError('fn f() { mut x = 5 x[0] = 1 }', 'Cannot index into'));
 });

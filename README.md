@@ -21,13 +21,13 @@ Slides Presentation: https://docs.google.com/presentation/d/1-9eS556S_GLzTtHdNvy
 Programming should be a seamless translation of thought into logic. By forcing developers to be explicit about mutability, while intelligently inferring types behind the scenes, TEMP_JS catches logical bugs before the code ever runs. It combines the expressive syntax of dynamic scripting languages with a compiler that checks program correctness using an abstract syntax tree.
 
 
-
 ## Features
 
 * **Type Inference:** Catch type errors at compile-time without writing a single type annotation. The compiler infers types from initializers and literals.
 * **Immutable by Default:** Variables defined with `let` cannot be mutated. Opt-in to mutability by using `mut`.
-* **AST Optimization:** Features an optimization phase that automatically performs constant folding and dead code elimination.
-* **Clean Syntax:** Minimalist punctuation (no semicolons required) and unified array handling without sacrificing readability.
+* **Structs:** Group related data into named records with compile-time field validation and optional mutable field assignment.
+* **Interfaces:** Define method contracts that structs must implement, enforced entirely at compile time.
+* **AST Optimization:** Features an optimization phase that automatically performs constant folding, dead code elimination, and algebraic strength reduction.
 * **JavaScript Transpilation:** Compiles down to clean, optimized JavaScript (`.js`) ready to be executed in any modern JS environment or browser.
 
 
@@ -36,23 +36,27 @@ Programming should be a seamless translation of thought into logic. By forcing d
 The TEMP_JS compiler performs significant work during the semantic analysis phase to guarantee code safety:
 
 1. **Undeclared Variable Checking:** Variables and functions must be declared in their lexical scope before they are used.
-2. **Mutability Enforcement:** A compile-time error is immediately thrown if a reassignment or mutation (via `++`, `--`, `+=`, `-=`, or index assignment) is attempted on an immutable `let` variable or a `for...in` loop iteration variable.
+2. **Mutability Enforcement:** A compile-time error is immediately thrown if a reassignment or mutation (via `++`, `--`, `+=`, `-=`, index assignment, or field assignment) is attempted on an immutable `let` variable or a `for...in` loop iteration variable.
 3. **Inferred Type Checking:** All assignments, arithmetic operators, and relational operators verify type compatibility based on inferred types (e.g., attempting `3 + "hello"` will fail).
 4. **Contextual Constraints:** `break` statements are strictly checked to ensure they only exist inside loops, and `return` statements are strictly forbidden outside of function bodies.
-5. **Arity Matching:** Function calls are evaluated during the first pass to ensure the number of provided arguments perfectly matches the function's declared parameter count or built-in boundaries.
+5. **Arity Matching:** Function and method calls are evaluated during the first pass to ensure the number of provided arguments perfectly matches the declared parameter count or built-in boundaries.
 6. **Return Type Consistency:** A function's return type is locked by its first evaluated `return` statement; all subsequent returns within that function are checked to ensure they yield the identical inferred type.
 7. **Array Operation Safety:** Bracket notation is validated to ensure it is only applied to `array` types using `num` expressions for the index. Similarly, `for...in` loops mandate an `array` type iterable.
 8. **Enum Resolution:** Enum member access is evaluated at compile time to guarantee it references a valid, previously declared variant of that specific enum block.
 9. **Exhaustive Pattern Matching:** `match` statements are heavily constrained to prevent unhandled cases at runtime. They must be perfectly exhaustive (mandating wildcards for infinite types like `num` and `str`), contain no duplicate patterns, align perfectly with the subject's type, and place wildcards strictly at the end.
-10. **Reserved Keyword Protection:** Identifiers are scanned to ensure variable and function names do not collide with the language's reserved keywords.
+10. **Reserved Keyword Protection:** Identifiers are scanned to ensure variable and function names do not collide with the language's reserved keywords (`fn`, `let`, `mut`, `struct`, `interface`, `impl`, `if`, `else`, `while`, `for`, `in`, `return`, `break`, `print`, `true`, `false`, `match`, `enum`).
+11. **Struct Field Completeness:** Struct literals must provide every field declared in the struct definition — no missing and no extra fields are permitted.
+12. **Struct Field Validity:** Field access (`p.x`) and field assignment (`p.x = v`) are validated at compile time against the struct's declared field list.
+13. **Interface Contract Enforcement:** An `impl` block must implement every method declared by the interface. 
+14. **Method Call Validation:** Method calls (`c.describe()`) verify at compile time that the variable's type has an `impl`, that the method exists on it, and that the correct number of arguments are provided.
 
 ## Example Programs
 
-Here are five complete programs covering every syntactic form in TEMP_JS. Try copying them into a `.tjs` file and running them through the compiler!
+Here are seven complete programs covering every syntactic form in TEMP_JS. Try copying them into a `.tempjs` file and running them through the compiler!
 
 ### 1. Enums and Pattern Matching
 
-This example demonstrates how to define **Enums** and use the **Match** statement to handle data variants. It showcases how TEMP_JS ensures exhaustiveness, meaning you must account for every possible enum variant or boolean state.
+This example demonstrates how to define **Enums** and use the **Match** statement to handle data variants.
 
 ```
 enum Direction { North South East West }
@@ -97,7 +101,7 @@ fn main() {
 
 ### 2. Functions and String Interpolation
 
-Here you can see **Function declarations** in action, along with **f-strings** (formatted strings). This example also highlights how scoping works within `if/else` branches and how the compiler handles mathematical expressions within print statements.
+Here you can see **Function declarations** in action, along with **f-strings** (formatted strings).
 
 ```
 fn greet(name) {
@@ -137,7 +141,7 @@ fn main() {
 
 ### 3. Conditionals and While Loops
 
-This program utilizes a **while loop** and **mutable variables** to iterate through a sequence. It combines these with a `match` statement to transform raw numbers into descriptive strings, demonstrating how the language handles logic flow and state changes.
+This program uses a **while loop**. It combines `match` on numbers and booleans to convert raw values into descriptive strings, demonstrating how TEMP_JS handles state changes and branching logic together.
 
 ```
 fn day_name(n) {
@@ -183,7 +187,7 @@ fn main() {
 
 ### 4. Ranges and For-In Loops
 
-This example showcases the built-in **range()** function. It demonstrates the three ways to call range (single argument, start/stop, and start/stop/step) and how to use the **for-in** loop to iterate through these sequences efficiently.
+This example showcases the built-in **range()** function.
 
 ```
 fn sum_range(n) {
@@ -217,7 +221,7 @@ fn main() {
 
 ### 5. Arrays and Mutability
 
-The "Kitchen Sink" example focuses on **Array manipulation**. It shows how to pass arrays to functions, iterate over them, and perform **index assignment** on `mut` arrays. It serves as a practical look at how TEMP_JS handles collections and data mutability.
+This example focuses on **array manipulation** and the distinction between `let` and `mut` collections. It shows how to pass arrays into functions, iterate over them with `for-in`, and perform **index assignment** — which the compiler only permits on `mut` arrays.
 
 ```
 fn sum(nums) {
@@ -243,4 +247,83 @@ fn main() {
 }
 ```
 
+### 6. Structs and Field Access
 
+This example introduces **structs**, TEMP_JS's named record type. It shows how to declare a struct, create both immutable and mutable instances, read fields with dot notation, mutate fields on `mut` variables, pass structs into functions, and store them in arrays.
+
+```
+struct Point { x y }
+
+struct Rectangle { width height }
+
+fn area(r) {
+    return r.width * r.height
+}
+
+fn perimeter(r) {
+    return 2 * r.width + 2 * r.height
+}
+
+fn distance_sq(p) {
+    return p.x * p.x + p.y * p.y
+}
+
+fn main() {
+    let p = Point { x: 3, y: 4 }
+    print(f"Point: ({p.x}, {p.y})")
+    print(f"Distance squared from origin: {distance_sq(p)}")
+
+    mut q = Point { x: 0, y: 0 }
+    q.x = 6
+    q.y = 8
+    print(f"Moved point: ({q.x}, {q.y})")
+    print(f"Distance squared from origin: {distance_sq(q)}")
+
+    let r = Rectangle { width: 5, height: 3 }
+    print(f"Rectangle: {r.width}x{r.height}")
+    print(f"Area: {area(r)}")
+    print(f"Perimeter: {perimeter(r)}")
+
+    let points = [Point { x: 1, y: 2 }, Point { x: 3, y: 4 }, Point { x: 5, y: 6 }]
+    for pt in points {
+        print(f"({pt.x}, {pt.y})")
+    }
+}
+```
+
+### 7. Interfaces and Method Calls
+
+This example demonstrates **interfaces** and **impl blocks**. An interface declares the method signatures a type must provide; the `impl` block attaches those methods to a struct, with `self` referring to the instance.
+
+```
+interface Describable {
+    fn describe()
+}
+
+struct Circle { radius }
+struct Rect { width height }
+
+impl Circle for Describable {
+    fn describe() {
+        return f"Circle with radius {self.radius}"
+    }
+}
+
+impl Rect for Describable {
+    fn describe() {
+        return f"Rect {self.width}x{self.height}"
+    }
+}
+
+fn main() {
+    let c = Circle { radius: 5 }
+    let r = Rect { width: 4, height: 6 }
+    print(c.describe())
+    print(r.describe())
+
+    let shapes = [Circle { radius: 1 }, Circle { radius: 3 }, Circle { radius: 7 }]
+    for s in shapes {
+        print(s.describe())
+    }
+}
+```

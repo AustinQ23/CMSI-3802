@@ -354,3 +354,115 @@ test('generator: len on string emits .length', () => {
   const out = gen('fn f() { let s = "hi" let n = len(s) }');
   assert.ok(out.includes('s.length'));
 });
+
+// IncrDecr
+
+test('generator: ++ emits postfix increment', () => {
+  const out = gen('fn f() { mut x = 1 x++ }');
+  assert.ok(out.includes('x++;'));
+});
+
+test('generator: -- emits postfix decrement', () => {
+  const out = gen('fn f() { mut x = 1 x-- }');
+  assert.ok(out.includes('x--;'));
+});
+
+// CompoundAssign
+
+test('generator: += emits compound assignment', () => {
+  const out = gen('fn f() { mut x = 1 x += 2 }');
+  assert.ok(out.includes('x += 2'));
+});
+
+test('generator: -= emits compound subtraction assignment', () => {
+  const out = gen('fn f() { mut x = 5 x -= 1 }');
+  assert.ok(out.includes('x -= 1'));
+});
+
+// FieldAssign
+
+test('generator: field assignment emits dot assignment', () => {
+  const out = gen('struct Point { x y } fn f() { mut p = Point { x: 0, y: 0 } p.x = 5 }');
+  assert.ok(out.includes('p.x = 5'));
+});
+
+// StructDecl and InterfaceDecl emit no runtime code
+
+test('generator: struct declaration emits no output', () => {
+  const out = gen('struct Point { x y }');
+  assert.ok(!out.includes('struct'));
+});
+
+test('generator: interface declaration emits no output', () => {
+  const out = gen('interface Describable { fn describe() }');
+  assert.ok(!out.includes('interface'));
+  assert.ok(!out.includes('Describable'));
+});
+
+// StructLiteral without impl emits plain object
+
+test('generator: struct literal without impl emits plain object literal', () => {
+  const out = gen('struct Point { x y } fn f() { let p = Point { x: 3, y: 4 } }');
+  assert.ok(out.includes('{ x: 3, y: 4 }'));
+  assert.ok(!out.includes('make_Point'));
+});
+
+// StructLiteral with impl calls make_ factory
+
+test('generator: struct literal with impl calls make_ factory', () => {
+  const out = gen('struct Circle { radius } interface Describable { fn describe() } impl Circle for Describable { fn describe() { return f"Circle with radius {self.radius}" } } fn f() { let c = Circle { radius: 5 } }');
+  assert.ok(out.includes('make_Circle('));
+});
+
+// ImplDecl generates make_ factory function
+
+test('generator: impl declaration generates make_ factory function', () => {
+  const out = gen('struct Circle { radius } interface Describable { fn describe() } impl Circle for Describable { fn describe() { return f"Circle with radius {self.radius}" } }');
+  assert.ok(out.includes('function make_Circle(fields)'));
+  assert.ok(out.includes('const self = fields'));
+  assert.ok(out.includes('describe()'));
+});
+
+// MethodCall
+
+test('generator: method call emits dot-call syntax', () => {
+  const out = gen('struct Circle { radius } interface Describable { fn describe() } impl Circle for Describable { fn describe() { return f"Circle with radius {self.radius}" } } fn f() { let c = Circle { radius: 5 } let s = c.describe() }');
+  assert.ok(out.includes('c.describe()'));
+});
+
+test('generator: range inside match arm is detected and helper is emitted', () => {
+  const out = gen('fn f() { let x = 1 match x { 1 => { for i in range(3) { print(i) } } _ => { } } }');
+  assert.ok(out.includes('function range('));
+});
+
+test('generator: method call with argument emits argument in output', () => {
+  const out = gen('struct Greeter { val } interface Greetable { fn greet(who) } impl Greeter for Greetable { fn greet(who) { return f"hi {who}" } } fn f() { let g = Greeter { val: 1 } let s = g.greet("world") }');
+  assert.ok(out.includes('g.greet("world")'));
+});
+
+test('generator: impl method with parameter emits correct function signature', () => {
+  const out = gen('struct Greeter { val } interface Greetable { fn greet(who) } impl Greeter for Greetable { fn greet(who) { return f"hi {who}" } }');
+  assert.ok(out.includes('greet(who)'));
+});
+
+// hasRangeCall branch coverage
+
+test('generator: range as standalone call statement triggers range helper', () => {
+  const out = gen('fn f() { range(5) }');
+  assert.ok(out.includes('function range('));
+});
+
+test('generator: range inside if body triggers range helper', () => {
+  const out = gen('fn f(x) { if x < 10 { for i in range(5) { print(i) } } }');
+  assert.ok(out.includes('function range('));
+});
+
+test('generator: range inside while body triggers range helper', () => {
+  const out = gen('fn f(x) { while x < 10 { for i in range(3) { print(i) } } }');
+  assert.ok(out.includes('function range('));
+});
+
+test('generator: range in function call arguments triggers range helper', () => {
+  const out = gen('fn foo(a) { return a } fn f() { foo(range(5)) }');
+  assert.ok(out.includes('function range('));
+});

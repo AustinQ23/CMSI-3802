@@ -49,9 +49,19 @@ test('optimizer: folds 3 == 3 to true', () => {
   assert.equal(result.value, true);
 });
 
+test('optimizer: folds 3 != 4 to true', () => {
+  const result = optimize(bin('!=', lit(3), lit(4)));
+  assert.equal(result.value, true);
+});
+
 test('optimizer: folds 4 > 5 to false', () => {
   const result = optimize(bin('>', lit(4), lit(5)));
   assert.equal(result.value, false);
+});
+
+test('optimizer: folds 5 >= 5 to true', () => {
+  const result = optimize(bin('>=', lit(5), lit(5)));
+  assert.equal(result.value, true);
 });
 
 test('optimizer: folds 2 <= 2 to true', () => {
@@ -66,8 +76,18 @@ test('optimizer: folds true && false to false', () => {
   assert.equal(result.value, false);
 });
 
+test('optimizer: folds false && true evaluates both sides', () => {
+  const result = optimize(bin('&&', lit(false), lit(true)));
+  assert.equal(result.value, false);
+});
+
 test('optimizer: folds true || false to true', () => {
   const result = optimize(bin('||', lit(true), lit(false)));
+  assert.equal(result.value, true);
+});
+
+test('optimizer: folds false || true evaluates right side', () => {
+  const result = optimize(bin('||', lit(false), lit(true)));
   assert.equal(result.value, true);
 });
 

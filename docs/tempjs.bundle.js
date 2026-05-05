@@ -2942,7 +2942,7 @@ var Semantics = class _Semantics {
     }
   }
   // Returns a wrapper for the given CST `node` in this semantics.
-  // If `node` is already a wrapper, returns `node` itself.  // TODO: why is this needed?
+  // If `node` is already a wrapper, returns `node` itself. 
   wrap(node, source, optBaseInterval) {
     const baseInterval = optBaseInterval || source;
     return node instanceof this.Wrapper ? node : new this.Wrapper(node, source, baseInterval);
@@ -3268,7 +3268,6 @@ var Grammar = class _Grammar {
     ];
     return jsonToJS(`[${recipeElements.join(",")}]`);
   }
-  // TODO: Come up with better names for these methods.
   // TODO: Write the analog of these methods for inherited attributes.
   toOperationActionDictionaryTemplate() {
     return this._toOperationOrAttributeActionDictionaryTemplate();
@@ -3405,7 +3404,6 @@ var GrammarDecl = class {
   ensureSuperGrammar() {
     if (!this.superGrammar) {
       this.withSuperGrammar(
-        // TODO: The conditional expression below is an ugly hack. It's kind of ok because
         // I doubt anyone will ever try to declare a grammar called `BuiltInRules`. Still,
         // we should try to find a better way to do this.
         this.name === "BuiltInRules" ? Grammar.ProtoBuiltInRules : Grammar.BuiltInRules

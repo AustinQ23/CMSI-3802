@@ -16,6 +16,26 @@ semantics.addOperation('ast', {
     return n('EnumDecl', { name: name.ast().name, variants: variants.children.map(v => v.ast().name) });
   },
 
+  StructDecl(_struct, name, _open, fields, _close) {
+    return n('StructDecl', { name: name.ast().name, fields: fields.children.map(f => f.ast().name) });
+  },
+
+  InterfaceDecl(_interface, name, _open, sigs, _close) {
+    return n('InterfaceDecl', { name: name.ast().name, methods: sigs.children.map(s => s.ast()) });
+  },
+
+  MethodSig(_fn, name, _open, params, _close) {
+    return { name: name.ast().name, paramCount: params.asIteration().children.length };
+  },
+
+  ImplDecl(_impl, structId, _for, ifaceId, _open, funcs, _close) {
+    return n('ImplDecl', {
+      structName: structId.ast().name,
+      interfaceName: ifaceId.ast().name,
+      methods: funcs.children.map(f => f.ast()),
+    });
+  },
+
   FuncDecl(_fn, name, _open, params, _close, _openb, stmts, _closeb) {
     const pname = name.ast().name;
     const paramsArr = params.asIteration().children.map(c => c.ast());
@@ -98,6 +118,10 @@ semantics.addOperation('ast', {
     return n('IndexAssign', { target: id.ast().name, index: index.ast(), value: value.ast() });
   },
 
+  FieldAssign(obj, _dot, field, _eq, value) {
+    return n('FieldAssign', { object: obj.ast().name, field: field.ast().name, value: value.ast() });
+  },
+
   ReturnStmt(_ret, expOpt) {
     const expr = expOpt.children.length ? expOpt.children[0].ast() : null;
     return n('Return', { expr });
@@ -132,8 +156,18 @@ semantics.addOperation('ast', {
     const argList = args.asIteration().children.map(c => c.ast());
     return n('Call', { callee: id.ast().name, args: argList });
   },
+  Exp7_methodcall(obj, _dot, method, _open, args, _close) {
+    return n('MethodCall', { object: obj.ast().name, method: method.ast().name, args: args.asIteration().children.map(a => a.ast()) });
+  },
   Exp7_member(obj, _dot, member) {
     return n('MemberAccess', { object: obj.ast().name, member: member.ast().name });
+  },
+  Exp7_structlit(id, _open, fields, _close) {
+    return n('StructLiteral', { name: id.ast().name, fields: fields.asIteration().children.map(f => f.ast()) });
+  },
+
+  FieldInit(name, _colon, value) {
+    return { name: name.ast().name, value: value.ast() };
   },
   Exp7_id(id) { return id.ast(); },
   Exp7_parens(_open, expr, _close) { return expr.ast(); },

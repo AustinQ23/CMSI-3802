@@ -1,6 +1,8 @@
 // transpiler from AST to JavaScript.
 function indent(n) { return '  '.repeat(n); }
 
+let _structImpls = new Set();
+
 function emitExpr(expr, level=0) {
   switch (expr.type) {
     case 'Literal':
@@ -21,6 +23,14 @@ function emitExpr(expr, level=0) {
       return `${emitExpr(expr.array)}[${emitExpr(expr.index)}]`;
     case 'MemberAccess':
       return `${expr.object}.${expr.member}`;
+    case 'StructLiteral': {
+      const fieldsStr = expr.fields.map(f => `${f.name}: ${emitExpr(f.value)}`).join(', ');
+      return _structImpls.has(expr.name)
+        ? `make_${expr.name}({ ${fieldsStr} })`
+        : `{ ${fieldsStr} }`;
+    }
+    case 'MethodCall':
+      return `${expr.object}.${expr.method}(${expr.args.map(a => emitExpr(a)).join(', ')})`;
     case 'FString': {
       const content = expr.parts.map(p =>
         p.type === 'FStringText' ? p.value : '${' + emitExpr(p.expr) + '}'
@@ -63,6 +73,8 @@ function emitStmt(stmt, level=0) {
       return stmt.expr ? `${indent(level)}return ${emitExpr(stmt.expr)};` : `${indent(level)}return;`;
     case 'Break':
       return `${indent(level)}break;`;
+    case 'FieldAssign':
+      return `${indent(level)}${stmt.object}.${stmt.field} = ${emitExpr(stmt.value)};`;
     case 'IndexAssign':
       return `${indent(level)}${stmt.target}[${emitExpr(stmt.index)}] = ${emitExpr(stmt.value)};`;
     case 'For': {
@@ -121,10 +133,20 @@ function hasRangeCall(nodes) {
 
 export function generateJS(ast) {
   if (!ast || ast.type !== 'Program') throw new Error('Invalid AST for codegen');
+  _structImpls = new Set(ast.body.filter(n => n.type === 'ImplDecl').map(n => n.structName));
   const parts = [];
   if (hasRangeCall(ast.body)) parts.push(RANGE_HELPER);
   for (const node of ast.body) {
-    if (node.type === 'EnumDecl') {
+    if (node.type === 'StructDecl' || node.type === 'InterfaceDecl') {
+      // no runtime representation needed
+    } else if (node.type === 'ImplDecl') {
+      const methods = node.methods.map(m => {
+        const params = m.params.map(p => p.name).join(', ');
+        const body = m.body.map(s => emitStmt(s, 2)).join('\n');
+        return `  ${m.name}(${params}) {\n${body}\n  }`;
+      }).join(',\n');
+      parts.push(`function make_${node.structName}(fields) {\n  const self = fields;\n  Object.assign(fields, {\n${methods}\n  });\n  return fields;\n}`);
+    } else if (node.type === 'EnumDecl') {
       const pairs = node.variants.map(v => `${v}: "${v}"`).join(', ');
       parts.push(`const ${node.name} = Object.freeze({ ${pairs} });`);
     } else if (node.type === 'FunctionDecl') {
@@ -135,7 +157,6 @@ export function generateJS(ast) {
       parts.push(emitStmt(node, 0));
     }
   }
-  // For convenience, if there's a `main` function, call it.
   if (ast.body.some(n => n.type === 'FunctionDecl' && n.name === 'main')) {
     parts.push('main();');
   }

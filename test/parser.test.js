@@ -602,3 +602,145 @@ test('parser: fstring interpolation can contain expressions', () => {
   assert.equal(interp.expr.type, 'Binary');
   assert.equal(interp.expr.op, '+');
 });
+
+// StructDecl
+
+test('parser: struct declaration produces StructDecl node', () => {
+  const tree = ast('struct Point { x y }');
+  assert.equal(tree.body[0].type, 'StructDecl');
+  assert.equal(tree.body[0].name, 'Point');
+  assert.deepEqual(tree.body[0].fields, ['x', 'y']);
+});
+
+// InterfaceDecl / MethodSig
+
+test('parser: interface declaration produces InterfaceDecl node', () => {
+  const tree = ast('interface Describable { fn describe() }');
+  assert.equal(tree.body[0].type, 'InterfaceDecl');
+  assert.equal(tree.body[0].name, 'Describable');
+  assert.equal(tree.body[0].methods.length, 1);
+});
+
+test('parser: interface method signature captures name and paramCount', () => {
+  const tree = ast('interface Greeter { fn greet(name) }');
+  const method = tree.body[0].methods[0];
+  assert.equal(method.name, 'greet');
+  assert.equal(method.paramCount, 1);
+});
+
+// ImplDecl
+
+test('parser: impl declaration produces ImplDecl node', () => {
+  const tree = ast('struct Circle { radius } interface Describable { fn describe() } impl Circle for Describable { fn describe() { return f"hi" } }');
+  const impl = tree.body[2];
+  assert.equal(impl.type, 'ImplDecl');
+  assert.equal(impl.structName, 'Circle');
+  assert.equal(impl.interfaceName, 'Describable');
+  assert.equal(impl.methods.length, 1);
+});
+
+test('parser: impl method is a FunctionDecl with correct name', () => {
+  const tree = ast('struct Circle { radius } interface Describable { fn describe() } impl Circle for Describable { fn describe() { return f"hi" } }');
+  const method = tree.body[2].methods[0];
+  assert.equal(method.type, 'FunctionDecl');
+  assert.equal(method.name, 'describe');
+});
+
+// CompoundAssign
+
+test('parser: += produces CompoundAssign node', () => {
+  const tree = ast('fn f() { mut x = 1 x += 2 }');
+  const stmt = tree.body[0].body[1];
+  assert.equal(stmt.type, 'CompoundAssign');
+  assert.equal(stmt.target, 'x');
+  assert.equal(stmt.op, '+=');
+});
+
+test('parser: -= produces CompoundAssign node with op -=', () => {
+  const tree = ast('fn f() { mut x = 5 x -= 1 }');
+  const stmt = tree.body[0].body[1];
+  assert.equal(stmt.type, 'CompoundAssign');
+  assert.equal(stmt.op, '-=');
+});
+
+// IncrDecr
+
+test('parser: ++ produces IncrDecr node', () => {
+  const tree = ast('fn f() { mut x = 1 x++ }');
+  const stmt = tree.body[0].body[1];
+  assert.equal(stmt.type, 'IncrDecr');
+  assert.equal(stmt.target, 'x');
+  assert.equal(stmt.op, '++');
+});
+
+test('parser: -- produces IncrDecr node with op --', () => {
+  const tree = ast('fn f() { mut x = 1 x-- }');
+  const stmt = tree.body[0].body[1];
+  assert.equal(stmt.type, 'IncrDecr');
+  assert.equal(stmt.op, '--');
+});
+
+// FieldAssign
+
+test('parser: field assignment produces FieldAssign node', () => {
+  const tree = ast('struct Point { x y } fn f() { mut p = Point { x: 0, y: 0 } p.x = 5 }');
+  const stmt = tree.body[1].body[1];
+  assert.equal(stmt.type, 'FieldAssign');
+  assert.equal(stmt.object, 'p');
+  assert.equal(stmt.field, 'x');
+});
+
+// Exp7_structlit / FieldInit
+
+test('parser: struct literal produces StructLiteral node with fields', () => {
+  const tree = ast('struct Point { x y } fn f() { let p = Point { x: 3, y: 4 } }');
+  const expr = tree.body[1].body[0].init;
+  assert.equal(expr.type, 'StructLiteral');
+  assert.equal(expr.name, 'Point');
+  assert.equal(expr.fields.length, 2);
+  assert.equal(expr.fields[0].name, 'x');
+  assert.equal(expr.fields[1].name, 'y');
+});
+
+test('parser: struct literal field init has name and value', () => {
+  const tree = ast('struct Point { x y } fn f() { let p = Point { x: 3, y: 4 } }');
+  const field = tree.body[1].body[0].init.fields[0];
+  assert.equal(field.name, 'x');
+  assert.equal(field.value.type, 'Literal');
+  assert.equal(field.value.value, 3);
+});
+
+// Exp7_methodcall
+
+test('parser: method call produces MethodCall node', () => {
+  const tree = ast('struct Circle { radius } interface Describable { fn describe() } impl Circle for Describable { fn describe() { return f"hi" } } fn f() { let c = Circle { radius: 5 } let s = c.describe() }');
+  const expr = tree.body[3].body[1].init;
+  assert.equal(expr.type, 'MethodCall');
+  assert.equal(expr.object, 'c');
+  assert.equal(expr.method, 'describe');
+  assert.equal(expr.args.length, 0);
+});
+
+// FString edge cases (parseFStringParts branches)
+
+test('parser: fstring with unclosed brace reads to end of string', () => {
+  const tree = ast('fn f(world) { let s = f"hello {world" }');
+  const parts = tree.body[0].body[0].init.parts;
+  assert.equal(parts[0].type, 'FStringText');
+  assert.equal(parts[1].type, 'FStringInterp');
+});
+
+test('parser: fstring with empty braces produces null expr', () => {
+  const tree = ast('fn f() { let s = f"hello {}" }');
+  const parts = tree.body[0].body[0].init.parts;
+  assert.equal(parts[1].type, 'FStringInterp');
+  assert.equal(parts[1].expr, null);
+});
+
+test('parser: method call with argument captures args array', () => {
+  const tree = ast('struct Greeter { val } interface Greetable { fn greet(who) } impl Greeter for Greetable { fn greet(who) { return f"hi {who}" } } fn f() { let g = Greeter { val: 1 } let s = g.greet("world") }');
+  const expr = tree.body[3].body[1].init;
+  assert.equal(expr.type, 'MethodCall');
+  assert.equal(expr.args.length, 1);
+  assert.equal(expr.args[0].type, 'Literal');
+});
